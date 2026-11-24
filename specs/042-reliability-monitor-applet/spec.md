@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-16
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "enable Windows Reliability Monitor through the command 'perfmon /rel' and add to Windows-MCP powershell tools"
 

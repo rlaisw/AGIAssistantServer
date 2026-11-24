@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-08
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "help to reduce 'AI is controlling this computer' dialog message box from 10 sec. to 3 sec."
 

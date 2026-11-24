@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "change animated icon to 'LoaderCircle with animate-spin in #82D2F6 (no gradient)' + 'Thinking' TEXT" — replace the assistant's two in-progress indicators (three gray pulsing dots while waiting for the first chunk, and the gray streaming caret after text starts) with one unified indicator: a spinning ring in light sky blue (`#82D2F6`) plus bold "Thinking" text. Decisions locked in the preceding conversation: unify both states into one indicator; use the lucide `LoaderCircle` icon with `animate-spin` (house icon library, zero new dependencies); color `#82D2F6` with no gradient; bold text.
 

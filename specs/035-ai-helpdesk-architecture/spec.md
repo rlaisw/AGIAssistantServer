@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-11
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Build AI Helpdesk Architecture" based on the above conversation — a six-service architecture (Windows-MCP, Playwright MCP, Playwright Scripts, office-mcp, cli-anything, Skill Manager) with a skill auto-save/auto-reuse learning loop and a mandatory tool-routing agent prompt, extending the existing Hermes gateway lanes (specs 027–034).
 

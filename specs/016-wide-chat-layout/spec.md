@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-21
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: expand the chat column from its fixed
 768px (`max-w-3xl`) reading width toward a wide layout (~90% of the

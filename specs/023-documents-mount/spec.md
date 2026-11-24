@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "add new source-list, based on the above chat conversation, help to implement Option 2" — a dedicated, honestly-named documents folder for RAG ingestion. Today the only working source location is a borrowed folder inside the ppt-master tree (`ppt-master/rag-docs`), which misleads users; documents placed under the app's config dir (`~/.config/...`) are silently invisible to the scanner (hidden-directory filter). Option 2 (locked in the preceding conversation): create host `~/agentic-rag-docs/`, mount it into the sidecar at `/data/rag-docs` **in the deployment's own container spec** so it survives redeploys, migrate the existing document there, re-register the source, and verify ingestion end-to-end.
 

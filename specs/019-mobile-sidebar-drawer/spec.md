@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User report: "on mobile I can chat but cannot expand/access the sidebar menu" — the sidebar is `hidden md:flex`, so below 768px it never renders and the toggle does nothing visible. This feature makes the sidebar available on mobile as an on-demand overlay drawer. **It supersedes spec 016's edge-case decision "Mobile (<768px): no sidebar exists"** — mobile now has the drawer, closed by default.
 

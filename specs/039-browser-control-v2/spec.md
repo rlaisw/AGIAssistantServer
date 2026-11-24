@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-13
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: "Enable playwright to have a browser-control-tool capability, such that chatbot can click, select, navigate, and etc." — extends spec 037's browser lanes and the proven v2 single-hop proxy (navigate/read/click) to the FULL interaction surface the browser engine already exposes, so the chatbot can complete real web workflows (logins, forms, dropdowns, key creation) — not just navigate and read.
 

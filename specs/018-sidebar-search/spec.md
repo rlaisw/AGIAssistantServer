@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "implement a Full Text Search with Case-Insensitive — based on the above chat conversation" (adopts the analyzed scope: wire the existing dead sidebar search input to case-insensitive filtering of conversation titles plus currently-loaded message text; title-only matching for unopened backend conversations, documented honestly; no backend changes).
 

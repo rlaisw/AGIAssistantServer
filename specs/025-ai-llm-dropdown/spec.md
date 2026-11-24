@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-26
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "base on the above chat conversation and installed ollama and Qwen3 8B Q4_K_M. help to proceed specify task" — the feature named in the preceding conversation: an **"AI LLM" drop-down menu** in the Chat UI that lets the user pick which AI model powers the conversation. The prerequisite named there is complete: Ollama 0.40.11 is installed and serving on the host (all interfaces, port 11434), with **Qwen3 8B (Q4_K_M, 5.2 GB)** pulled and verified (tool-calling and thinking capable, 40K context, CPU-only inference — no GPU on this host). Today every assistant reply is served by the hosted DeepSeek model via the existing provider; that model remains the default.
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-11
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: Component spec inherited from spec 035 (AI Helpdesk Architecture): the cli-anything task-API gateway — a plain-HTTP REST service on the Windows host wrapping PowerShell-orchestrated system tasks (Tier-1 quick fixes, Tier-2 deep repairs, Office install), with structured JSON only. Prerequisites: `cli-anything-hub` 0.4.1 installed on Windows (this morning). This spec instantiates 035's FR-009 (long jobs off the streamed transport), FR-013 (Tier-1 recommends → chat-confirmed Tier-2; never-list binding), FR-014 (audit), research R5 (sidecar lane, never raw agent HTTP), and the 035 test-plan gateway rows.
 

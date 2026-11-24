@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "enhance welcome new chat page, based on the above chat conversation, adding new feature cards" — replace the four generic suggestion cards in the welcome empty state with a six-card feature showcase (title, emoji icon, one-line description, example-prompt label). The heading "How can I help you today?" and the subtext "Ask anything, or start from a suggestion." are unchanged. Decisions locked in the preceding conversation: card body click sends the example prompt; the label is a hyperlink opening in a new tab; 2×3 desktop grid, stacked on mobile; six placeholder URLs (`http://localhost/example1.html` … `example6.html`) are temporary until real help pages exist.
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "rename AgenticRAG and AI Chat ONLY in UI skin — change AI Chat to 'AGI Chat', DO NOT CHANGE the backend system's real name; ONLY change 'AgenticRAG' to 'AGI Chat' in the UI skin."
 

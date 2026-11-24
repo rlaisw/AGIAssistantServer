@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-19
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: 'add System Prompt — "Before answering the user''s question, ask for any critical missing information." (intent confirmed in conversation, 2026-11-19)'
 

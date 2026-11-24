@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-02
 
-**Status**: Draft
+**Status**: Implemented — 24 of 25 tasks complete
 
 **Input**: User description: "add prompt-driven, end-to-end Office task execution" — extended by the design discussion: a third Hermes capability that lets one chat prompt drive real Office work on the user's Windows machine through the already-installed Office automation service (OfficeMCP v1.0.5, Windows side, work folder `C:\OfficeMCP`, SSE mode available). Chain: prompt → Dify → Hermes agent → Office tool service → **Word, Excel, PowerPoint, Outlook**. Owner's acceptance examples: *"open Excel, input 12345 at cell A1"* and *"Launch Outlook → new email → type 'test Hello World' → send to raymond.lai@tvb.com.hk"*.
 

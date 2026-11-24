@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-10
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Align port number (host_port:docker_container_port). Change from 28080:8080 to 28080:28080, and from 28888:8080 to 28888:28888. The purpose is to align the same port, easy to remember and straightforward to understand traffic flow."
 

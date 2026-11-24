@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-11
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: Component spec inherited from spec 035 (AI Helpdesk Architecture): the two browser lanes — dynamic (official Playwright MCP, exploratory AI-driven browsing) and scripted (deterministic, named workflows). Prerequisites already installed on the Windows host (2026-11-11): Playwright CLI 1.65.0, `@playwright/mcp` 0.0.85 (verified live as SSE on `127.0.0.1:3002`), Chromium downloaded. This spec instantiates 035's FR-008 (browser routing), FR-019 (web content = untrusted context), FR-009 (long jobs off streamed transport), FR-014/018 (audit + gateway-native transport), SC-007 (adversarial battery A2), and the 035 test-plan browser rows.
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-10
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "I choose Option C: Configured specialty profiles. How to pre-define specialty website URLs — I prefer a JSON file, thus I can easily manage and update website URLs. Config-defined profiles with multiple sites per topic. The Dify Agentic strategy node will combine existing general web search results + results from the new specialty web search tool."
 

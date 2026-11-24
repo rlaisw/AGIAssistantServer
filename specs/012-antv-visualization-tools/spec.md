@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "To add new Dify MCP Tools, based on the above conversation, I choose Option B: bridge into the agentic-rag sidecar" — i.e. add AntV data-visualization capability (statistical charts, diagrams, and infographics) as new tools on the **existing** sidecar MCP provider, usable by both the Agentic Strategy node and the PPT-Master node in the Dify chatflow.
 

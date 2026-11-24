@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-20
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "change infographic notification link (add emoji and text in blue-color)" with the explicit constraint: **ONLY** change the infographic message note; do not change code for displaying images on the AGI Chat UI.
 

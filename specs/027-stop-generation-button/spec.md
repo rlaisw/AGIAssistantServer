@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-28
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "add a \"Stop\" button, shows the \"Stop\" button when the AGIAssistant is thinking/running. thus lets user can stop the thinking process"
 

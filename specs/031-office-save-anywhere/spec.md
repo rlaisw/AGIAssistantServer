@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-03
 
-**Status**: Draft
+**Status**: Implemented — 15 of 16 tasks complete
 
 **Input**: User description: "allow officemcp to save file to any folders" — extended by the design history: bug `no-powerpoint-tool` surfaced the lane-root mismatch ("a PowerPoint at c:\temp\test fits no lane") and surfaced the owner-configurable `office_root` knob; bug `fail-to-save-file` fixed punctuation false refusals. The owner now chooses to remove the location boundary: an Office task may name **any folder** as its save (or read) location, not only the Office work folder.
 

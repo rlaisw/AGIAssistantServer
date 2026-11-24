@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-10
 
-**Status**: Draft
+**Status**: Implemented — 17 of 18 tasks complete
 
 **Input**: User description: "Allow Windows-MCP PowerShell execution capability" — the owner decision that the two by-design bug reports of 2026-11-09 (`i-cant-execute-powershell-…`, `the-local-agent-simply-has-no-shell-…`) explicitly deferred to this moment: chat-driven arbitrary PowerShell execution on the user's Windows computer, via the local agent's Windows-side shell tool, under the stack's established honesty machinery and a new **confirm-before-execute** safety model (the office lane's confirm-before-send email precedent).
 

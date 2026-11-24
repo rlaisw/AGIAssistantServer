@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-22
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Add a system health check feature based on the preceding discussion. When the user reports that their Windows 11 desktop is unstable—freezing, hanging, applications crashing, or showing BSODs—the assistant should provide diagnostic guidance, offer to run a read-only health check automatically, return the complete HTML report in the chat answer (and write it to %LOCALAPPDATA%\Temp\selfcheck.html), serve a temporary report URL, and open Reliability Monitor. It must not repair the system; repairs require HelpDesk. The report may display login, email, IP address, hardware, password-expiry, event-log, and crash data; the owner explicitly approved showing those fields."
 

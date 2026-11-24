@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-11
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: Component spec inherited from spec 035 (AI Helpdesk Architecture): the Skill Manager — server-side shared skill store with semantic intent search, parameterized workflow records, versioned updates, trust-based reuse, and feedback-driven decay. This spec instantiates spec 035's data model (Skill/Step/SkillFeedback), contracts (skill_search/get/save/feedback API shapes), and test-plan sections 1a/1b, E1/E5/E6, and A3 for the Skill Manager surface.
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-09
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "to allow Windows-MCP to run hermes_run_command tool" — arising from the two by-design bug reports of 2026-11-09 (`i-cant-execute-powershell-…`, `the-local-agent-simply-has-no-shell-…`) and the live verification that the local agent's WindowsMCP tool surface includes a shell-execution tool. This spec opens a narrow, allowlisted, read-only diagnostics lane on the existing Hermes architecture (specs 028/029/030): gate in sidecar code before execution, honest verdicts, append-only audit.
 

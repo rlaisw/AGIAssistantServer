@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-21
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "i want to add a new function (PDF Download). The "PDF Download" function provide a download icon, User can download the chat conversation to PDF file."
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-09
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Enhance the SearXNG to give a nice and useful output result to pass to LLM. Objective: searches the web using litellm multi-engine support and then scrapes each page found [searxng][tavily][exa][perplexity]. Instead of showing all text then all images separately, it preserves the original page outline and displays the text + the image that belongs to that text grouped together in the same section, in document order: <h2> → <p> → img → <p>. Stack: litellm for search, requests + beautifulsoup4 + lxml for scraping and grouping, and HTML rendering to display the result similar to the original web page." (Full reference implementation quoted verbatim in the triggering message.)
 

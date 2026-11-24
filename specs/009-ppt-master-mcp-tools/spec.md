@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-18
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Setup ppt-master as MCP tools in Dify. Based on previous conversation, I choose Option A — granular MCP tools, Dify agent drives (recommended). A Dify Agent Strategy node named 'PPT-Master' (ReAct / Function Calling) interacts with ppt-master via custom tools. User types a prompt like 'help to generate a powerpoint, introduce Dify software', then 'PPT-Master' auto-generates the powerpoint."
 

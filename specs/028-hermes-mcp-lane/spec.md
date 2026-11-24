@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-31
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "install Hermes Agent as MCP Tool into Dify - AGI Assistant project" — extended by the design discussion: Hermes acts as a third agent lane (like the existing Q&A and deck lanes), so a prompt typed in the AGI Assistant chat can instruct the local Hermes agent to perform file operations on the user's Windows computer (e.g. `C:\temp`), with a security gate that confines every operation to an allowed root.
 

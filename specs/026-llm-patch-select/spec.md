@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-26
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "implement change LLM name to dify .yml — when the user chooses an AI LLM name: (1) export the AGI Assistant app (194e1edf-2eba-442c-b10b-231bebb79c37) to /kilocode/AGIAssistant/dify/AGIAssistant/, (2) change the LLM node model name to the user-selected LLM name for these 3 LLM nodes (PPT or General?, Agentic Strategy, PPT-Master), (3) re-import the app with OVERWRITE mode into the same app, (4) publish again — referencing the existing dify/difyctl-export-reimport-publish.sh script."
 

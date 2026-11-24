@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-01
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "add Hermes MCP tool can launch any program capability" — extended by the design discussion: a second Hermes lane that lets a chat prompt start an application (e.g. *"launch Outlook"*, *"open Excel"*, *"run C:\tools\mytool.exe"*) on the user's Windows computer, riding the same security architecture as the file lane (spec 028): gate before execution, honest verdicts, append-only audit.
 

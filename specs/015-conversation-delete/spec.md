@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-21
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Add new feature: enable: (option-1) 'Right-Click' the AI Chat to delete (option-2) your suggestion!?"
 

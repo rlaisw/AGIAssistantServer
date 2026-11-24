@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-21
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "i want to add chat history (Today, Yesterday, Previous 7 days, Last month, Few months ago) like this uploaded image" (reference image unreadable — grouping buckets taken from the text description)
 

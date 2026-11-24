@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "set the first landing page of AGI Chat UI to 'New Chat'" (with a screenshot of the desired state: header title "New chat", the "How can I help you today?" empty state with suggestions). Today the app initializes into the first demo conversation ("Q3 roadmap draft" with pre-filled demo messages); the user wants the first screen to be a fresh, empty "New chat" draft instead.
 

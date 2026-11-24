@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-10
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "I have some files on Microsoft OneDrive (Office documents and PDF files) and I want to embed the files to my local LanceDB database, so I can use AgenticRAG to answer my question. Also it can auto-update the embedding process."
 

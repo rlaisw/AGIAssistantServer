@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-11
 
-**Status**: Draft
+**Status**: Implemented — 38 of 39 tasks complete
 
 **Input**: User description: "Revise one-drive files source design. Based on the last conversation, use one-drive on-demand update embedding + staleness reminder (prompt user with reminder, not auto-download)."
 

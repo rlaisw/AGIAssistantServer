@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-26
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "i want to install difyctl, refer to the above chat conversation" — install the difyctl v1.18.0 command-line client on this host (WSL2, linux-x64), install its agent skill, complete the OAuth device-flow sign-in against the local Dify 1.18.0 console, verify read-only access to the AGI Assistant app, and adopt the operator's export→re-import→publish round-trip script (`~/Desktop/difyctl-export-reimport-publish.sh`) into the repo after fixing its defects. Verified in the preceding conversation against the official 1.18.0 release (GitHub API): the reference guide's download URL was wrong (tag is `1.18.0`, asset is `difyctl-v1.18.0-linux-x64`) and its login order was inverted; the round-trip script's initial "does not exist / redundant" assessment was corrected at double-clarify when the operator placed the script at `~/Desktop` (it is complementary to the deploy CLI — a server-side draft round-trip — and needs its foreign defaults, unverified command syntax, and dead error diagnostics fixed before adoption).
 

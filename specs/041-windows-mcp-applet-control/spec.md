@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-15
 
-**Status**: Draft
+**Status**: Implemented — 20 of 22 tasks complete
 
 **Input**: User description: "enable items 1-4 and follows your recommendation" — the four applet-control capabilities with the gate design analyzed and agreed 2026-11-15: (1) launching classic Control Panel applets (.cpl), (2) opening modern Settings pages (ms-settings:), (3) headless applet control via PowerShell cmdlets — split into a read-only tier and a fully confirmed write tier, and (4) end-to-end GUI applet automation — each tier gated per its risk class.
 
