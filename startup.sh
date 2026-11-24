@@ -14,16 +14,19 @@ sse_up() {
 }
 
 echo "[1/6] OfficeMCP (Windows-side MCP server)..."
+WIN_USER=$(/mnt/c/Windows/System32/cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r\n')
+OFFICEMCP_EXE="/mnt/c/Users/${WIN_USER}/.local/bin/officemcp.exe"
 if sse_up http://127.0.0.1:8888/sse; then
     echo "  OfficeMCP: already up on :8888"
+elif [ ! -x "$OFFICEMCP_EXE" ]; then
+    echo "  OfficeMCP: not installed for C:\\Users\\${WIN_USER} — Office lane unavailable (install: uv tool install officemcp)"
 else
-    /mnt/c/Users/RLWC145/.local/bin/officemcp.exe sse --port 8888 --host 127.0.0.1 --folder "C:/OfficeMCP" > /tmp/agi-assistant-officemcp.log 2>&1 &
+    "$OFFICEMCP_EXE" sse --port 8888 --host 127.0.0.1 --folder "C:/OfficeMCP" > /tmp/agi-assistant-officemcp.log 2>&1 &
     sleep 5
     if sse_up http://127.0.0.1:8888/sse; then
         echo "  OfficeMCP: up on :8888"
     else
-        echo "  ERROR: OfficeMCP not responding — check the process"
-        exit 1
+        echo "  OfficeMCP: not responding — check /tmp/agi-assistant-officemcp.log (Office lane unavailable)"
     fi
 fi
 
@@ -32,14 +35,16 @@ fi
 # wrapper manually only if it is down (e.g. task disabled or crashed).
 if sse_up http://127.0.0.1:8800/sse; then
     echo "  WindowsMCP: up on :8800"
+elif [ ! -f "/mnt/c/Users/${WIN_USER}/.windows-mcp/start-server.cmd" ]; then
+    echo "  WindowsMCP: not installed for C:\\Users\\${WIN_USER} — desktop automation unavailable"
 else
     /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command \
-        "Start-Process 'C:\Users\RLWC145\.windows-mcp\start-server.cmd' -WindowStyle Hidden" >/dev/null 2>&1
+        "Start-Process 'C:\\Users\\${WIN_USER}\\.windows-mcp\\start-server.cmd' -WindowStyle Hidden" >/dev/null 2>&1
     sleep 6
     if sse_up http://127.0.0.1:8800/sse; then
         echo "  WindowsMCP: up on :8800 (started via wrapper)"
     else
-        echo "  WindowsMCP: not responding — check C:\\Users\\RLWC145\\.windows-mcp\\server.log"
+        echo "  WindowsMCP: not responding — check C:\\Users\\${WIN_USER}\\.windows-mcp\\server.log"
     fi
 fi
 
@@ -57,7 +62,10 @@ if gateway_up; then
     echo "  Gateway: already up on :8642 — NOT restarting"
 else
     hermes gateway restart -y --detach >/dev/null 2>&1
-    sleep 10
+    for _ in $(seq 1 6); do
+        sleep 5
+        gateway_up && break
+    done
     if gateway_up; then
         echo "  Gateway: up on :8642"
     else
@@ -96,7 +104,10 @@ if [ -d "$(dirname "$0")/ai-chat-landing" ]; then
         echo "  Chat UI: already up on :3000"
     else
         (cd "$(dirname "$0")/ai-chat-landing" && exec pnpm dev) > /tmp/agi-assistant-chatui.log 2>&1 &
-        sleep 8
+        for _ in $(seq 1 6); do
+            sleep 5
+            [ "$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3000/ 2>/dev/null)" = "200" ] && break
+        done
         if curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3000/ 2>/dev/null | grep -q "200"; then
             echo "  Chat UI: up on :3000"
         else
@@ -109,15 +120,18 @@ fi
 
 echo "[6/6] Health check..."
 echo "---"
+http_code() { curl -s -o /dev/null -w '%{http_code}' --max-time 3 "$1" 2>/dev/null || true; }
+http_up() { local c; c=$(http_code "$1"); [ -n "$c" ] && [ "$c" -ge 200 ] && [ "$c" -lt 500 ]; }
+http_200() { [ "$(http_code "$1")" = "200" ]; }
 printf "%-25s" "Docker containers:"; docker ps --format '{{.Names}}' 2>/dev/null | wc -l | awk '{print $1 " running"}'
-printf "%-25s" "Sidecar :28080:"; curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:28080/ 2>/dev/null | awk '{print ($1 >= 200 && $1 < 500) ? "ok" : "FAIL"}'
+printf "%-25s" "Sidecar :28080:"; http_up http://localhost:28080/ && echo "ok" || echo "FAIL"
 printf "%-25s" "OfficeMCP :8888:"; sse_up http://127.0.0.1:8888/sse && echo "ok" || echo "FAIL"
 printf "%-25s" "WindowsMCP :8800:"; sse_up http://127.0.0.1:8800/sse && echo "ok" || echo "FAIL"
-printf "%-25s" "Dify :80:"; curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1/ 2>/dev/null | awk '{print ($1 >= 200 && $1 < 500) ? "ok" : "FAIL"}'
-printf "%-25s" "Chat UI :3000:"; curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3000/ 2>/dev/null | awk '{print $1 == 200 ? "ok" : "FAIL"}'
-printf "%-25s" "Ollama :11434:"; curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1:11434/api/tags 2>/dev/null | awk '{print $1 == 200 ? "ok" : "FAIL"}'
+printf "%-25s" "Dify :80:"; http_up http://127.0.0.1/ && echo "ok" || echo "FAIL"
+printf "%-25s" "Chat UI :3000:"; http_200 http://localhost:3000/ && echo "ok" || echo "FAIL"
+printf "%-25s" "Ollama :11434:"; http_200 http://127.0.0.1:11434/api/tags && echo "ok" || echo "FAIL"
 printf "%-25s" "Gateway :8642:"; gateway_up && echo "ok" || echo "FAIL"
-printf "%-25s" "MCP tools:"; hermes mcp test OfficeMCP 2>&1 | grep -c "RunPython\|Launch" | awk '{print ($1 > 0) ? "ok" : "FAIL"}'
+printf "%-25s" "MCP tools:"; hermes mcp test OfficeMCP 2>&1 | grep -c "RunPython\|Launch" | awk '{print ($1 > 0) ? "ok" : "FAIL"}' || true
 echo "---"
 
 echo ""
