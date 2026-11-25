@@ -62,6 +62,35 @@ def test_web_research_schema_v2(tmp_path, monkeypatch):
     assert h["render_html"].startswith("<!DOCTYPE html>")          # invariant 9: inline artifact
     assert "<title>Trace Guide</title>" in h["render_html"]
     assert "https://docs.example/trace" in h["render_html"]
+    assert isinstance(h["images"], list)                          # spec 049 C1: always present
+
+
+def test_web_research_images_populated_from_ok_scrape(tmp_path, monkeypatch):
+    """spec 049 C1/C3/C5: flat images mirror the ordered sections."""
+    import agentic_rag_mcp.search.web.research as research_mod
+
+    sections = [{"heading": "Pair the mouse", "blocks": [
+        {"type": "p", "text": "Hold the pairing button."},
+        {"type": "img", "src": "https://docs.example/img/step1.png", "alt": "Pairing button"},
+        {"type": "img", "src": "https://docs.example/img/step1.png", "alt": "Pairing button"},
+        {"type": "img", "src": "https://docs.example/img/pixel.gif", "alt": ""},
+    ]}]
+    monkeypatch.setattr(research_mod, "research_pages", lambda hits, **kw: {
+        h["url"]: {"url": h["url"], "status": "ok", "status_reason": None,
+                   "sections": sections, "truncated": False} for h in hits})
+
+    srv = _server(tmp_path, monkeypatch, FakeProvider(HITS))
+    out = call(srv, "web_research", {"query": "pair a mouse", "limit": 1})
+    images = out["hits"][0]["images"]
+    assert images == [{"url": "https://docs.example/img/step1.png",
+                       "alt": "Pairing button", "heading": "Pair the mouse"}]
+
+
+def test_web_research_images_empty_on_fallback(tmp_path, monkeypatch):
+    """spec 049 C4: a non-ok page exposes no images, never fabricated ones."""
+    srv = _server(tmp_path, monkeypatch, FakeProvider(HITS))
+    out = call(srv, "web_research", {"query": "q", "limit": 1})
+    assert out["hits"][0]["images"] == []
 
 
 def test_web_research_limit_capped_at_max_pages(tmp_path, monkeypatch):

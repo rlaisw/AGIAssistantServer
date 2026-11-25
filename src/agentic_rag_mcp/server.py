@@ -40,6 +40,7 @@ from .mcp_action.service import McpActionService, ScreenshotCapture, WindowsDisp
 from .office_state import OfficeState
 from .routing import decision as decision_mod
 from .search.embeddings import Embedder
+from .search.web.research import IMG_SKIP
 
 _office_state = OfficeState()
 
@@ -57,7 +58,7 @@ log = logging.getLogger("agentic_rag_mcp")
 
 
 _IMG_SRC_RE = re.compile(r"""<img[^>]+(?:src|data-src)=["']([^"']+)["']""", re.IGNORECASE)
-_IMG_SKIP = ("pixel", "tracker", "beacon", "spacer", "1x1", "blank.gif")
+_IMG_SKIP = IMG_SKIP  # shared with flatten_images (spec 049)
 
 
 def _fetch_url(url: str, max_chars: int = 4000) -> dict:
@@ -345,7 +346,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         standalone rendered HTML artifact per page (spec 003, FR-011)."""
         import time as _time
 
-        from .search.web.research import render_page, research_pages, sections_to_text
+        from .search.web.research import (flatten_images, render_page, research_pages,
+                                          sections_to_text)
 
         limit = max(1, min(limit, cfg.research_max_pages))
         started = _time.perf_counter()
@@ -367,8 +369,11 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             render = (render_page(scrape["sections"], h["url"], h["title"]) if ok
                       else render_page([], h["url"], h["title"],
                                        fallback_snippet=h["snippet"] or None))
+            # spec 049: flat image list so the answer can inline images without
+            # parsing render_html. Empty for fallback/blocked/failed pages.
+            images = flatten_images(scrape["sections"]) if ok else []
             out_hits.append({**h, "scrape": scrape, "content": content,
-                             "render_html": render})
+                             "render_html": render, "images": images})
         return {
             "query": query,
             "engines_used": engines_used,

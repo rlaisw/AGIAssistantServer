@@ -17,6 +17,9 @@ import httpx
 _UA = {"User-Agent": "Mozilla/5.0 (compatible; agentic-rag-mcp/0.1)"}
 _MAX_REDIRECTS = 3
 
+# Shared image-noise filter: fetch_url (server.py) and flatten_images both use it.
+IMG_SKIP = ("pixel", "tracker", "beacon", "spacer", "1x1", "blank.gif")
+
 
 class ScrapeBlocked(Exception):
     """A fetch destination was refused by the SSRF guard (FR-013)."""
@@ -104,10 +107,35 @@ def extract_sections(html: str, page_url: str, per_page_chars: int) -> tuple[lis
                 continue  # handled via its figure — don't double-count
             src = img.get("src") or img.get("data-src")
             if src and not src.startswith("data:"):
-                current["blocks"].append({"type": "img", "src": urljoin(page_url, src)})
+                current["blocks"].append({"type": "img", "src": urljoin(page_url, src),
+                                          "alt": (img.get("alt") or "").strip()})
     if current["blocks"]:
         sections.append(current)
     return sections, truncated
+
+
+def flatten_images(sections: list[dict], limit: int = 40) -> list[dict]:
+    """Flat per-page image list derived from the ordered sections (spec 049).
+
+    Document order, deduplicated by URL (first occurrence wins), noise URLs
+    skipped, capped at `limit`. Always a list — never None — so an image-less
+    page is an honest empty list, not a missing field.
+    """
+    images: list[dict] = []
+    seen: set[str] = set()
+    for sec in sections:
+        for b in sec["blocks"]:
+            if b["type"] != "img":
+                continue
+            url = b["src"]
+            low = url.lower()
+            if url in seen or any(bad in low for bad in IMG_SKIP):
+                continue
+            seen.add(url)
+            images.append({"url": url, "alt": b.get("alt", ""), "heading": sec["heading"]})
+            if len(images) >= limit:
+                return images
+    return images
 
 
 def sections_to_text(sections: list[dict]) -> str:

@@ -315,6 +315,9 @@ $VENV -m agentic_rag_mcp.deploy redeploy            # build → recreate → hea
 # publish the DSL to both explicit app IDs (AGI Chat 194e1edf-2eba-442c-b10b-231bebb79c37;
 # problem-bug app 7863fbe2-47f8-48c9-b096-6f7da8536b08) using the console/API
 $VENV -m agentic_rag_mcp.deploy verify              # 16-scenario headless battery (self-cleaning; current surface: 59 tools)
+# after publishing, confirm the LIVE app really got the new prompt (name-based publish
+# silently targets the other twin) — the spec-049 marker must be present:
+#   psql -Atc "select updated_at, graph::text like '%CAP: an answer MUST NOT inline more than 10 images%' from workflows where app_id='194e1edf-2eba-442c-b10b-231bebb79c37' order by updated_at desc limit 1;"
 $VENV -m agentic_rag_mcp.deploy cleanup             # prune deck projects older than [deploy] retention_days (default 30; 0 = keep forever)
 ```
 

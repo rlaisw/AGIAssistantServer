@@ -183,7 +183,7 @@ def test_mcp_action_surface_is_absent_from_unapproved_agents(graph: dict, node_i
     if node_id == "agentic_strategy_local":
         assert prompt.startswith("You are a test assistant")
         assert "ANSWER FORMAT — IMAGES" in prompt
-        assert "DEFAULT: always try to include images" in prompt
+        assert "SELF-CHECK before finishing" in prompt
         assert "antv_infographic" in prompt
 
 
@@ -502,6 +502,23 @@ def test_offline_honesty_allows_real_ok_and_partial_results(graph: dict):
         "Screenshot failed: no screenshot was captured."
     )
     assert _run_honesty(code, partial_answer, partial, lane="hermes") == partial_answer
+
+
+def test_offline_honesty_caps_inline_images_at_ten(graph: dict):
+    """FR-011: the answer finalizer keeps at most 10 inline images, in document order."""
+    code = _honesty_code(_nodes(graph))
+    images = "".join(
+        f"![Step {i}](https://example.com/step{i}.png)\n" for i in range(1, 13)
+    )
+    result = _run_honesty(code, "How to pair the mouse:\n" + images, None)
+    kept = re.findall(r"!\[[^\]]*\]\([^)]*\)", result)
+    assert len(kept) == 10, len(kept)
+    assert "step1.png" in kept[0] and "step10.png" in kept[9]
+    assert "step11.png" not in result and "step12.png" not in result
+
+    # Fewer than ten images pass through unchanged.
+    short = "".join(f"![Step {i}](https://example.com/step{i}.png)\n" for i in range(1, 4))
+    assert _run_honesty(code, "How to pair:\n" + short, None) == "How to pair:\n" + short
 
 
 def test_offline_honesty_display_and_screenshot_failures(graph: dict):
