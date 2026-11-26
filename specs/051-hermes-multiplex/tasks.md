@@ -26,9 +26,9 @@ description: "Tasks for the Hermes multi-profile gateway (Phase 2)"
 ## Phase 1: Setup
 
 - [X] T001 Add the provisioner configuration (`PROFILES_PROVISION_TOKEN`, `HERMES_PROFILES_DIR`, `HERMES_TEMPLATE_PROFILE`, `HERMES_WIN_USER`) to `ai-chat-landing/README.md` and read them through a new `ai-chat-landing/lib/profiles/config.ts`, failing fast on a missing token or template
-- [ ] T002 [P] Extract the inline sidecar stubs used by `tests/unit/test_hermes_profiles.py` and `tests/contract/test_hermes_profile_routing.py` into shared fixtures: `tests/fixtures/stub_hermes.py` (records argv, creates `profiles/<slug>/{config.yaml,.env}` with a generated `API_SERVER_KEY`, failure switches `FAIL_CREATE`/`FAIL_USERMD`/slow mode) and `tests/support/fake_gateway.py` (HTTP server responding 200/401/403/404/429/503 and recording path + presented key)
-- [ ] T003 [P] Extract the inline TypeScript stubs used by the profile tests into shared fixtures: `ai-chat-landing/tests/support/stub-hermes` executable, `ai-chat-landing/tests/support/fake-gateway.ts`, and `ai-chat-landing/lib/profiles/testing/tmpdir.ts` (temporary profiles root + registry path per test)
-- [ ] T004 [P] Extract identity fixtures into `tests/support/identities.ts` and `tests/fixtures/profiles/` (valid, corrupt, duplicate-slug, absent/v0 registry) covering the three TVB domains for one local part
+- [X] T002 [P] Extract the inline sidecar stubs used by `tests/unit/test_hermes_profiles.py` and `tests/contract/test_hermes_profile_routing.py` into shared fixtures: `tests/fixtures/stub_hermes.py` (records argv, creates `profiles/<slug>/{config.yaml,.env}` with a generated `API_SERVER_KEY`, failure switches `FAIL_CREATE`/`FAIL_USERMD`/slow mode) and `tests/support/fake_gateway.py` (HTTP server responding 200/401/403/404/429/503 and recording path + presented key)
+- [X] T003 [P] Extract the inline TypeScript stubs used by the profile tests into shared fixtures: `ai-chat-landing/tests/support/stub-hermes` executable, `ai-chat-landing/tests/support/fake-gateway.ts`, and `ai-chat-landing/lib/profiles/testing/tmpdir.ts` (temporary profiles root + registry path per test)
+- [X] T004 [P] Extract identity fixtures into `tests/support/identities.ts` and `tests/fixtures/profiles/` (valid, corrupt, duplicate-slug, absent/v0 registry) covering the three TVB domains for one local part
 - [X] T005 Add the read-only profiles mount and provisioner env to the sidecar container definition in `src/agentic_rag_mcp/deploy/docker_ops.py` (`/home/administrator/.hermes/profiles:/hermes-profiles:ro`, `HERMES_PROFILES_DIR`, `HERMES_PROVISION_URL`, `HERMES_PROVISION_TOKEN`)
 
 ## Phase 2: Foundational (blocking for every story)
@@ -55,7 +55,7 @@ description: "Tasks for the Hermes multi-profile gateway (Phase 2)"
 - [X] T015 [US1] Write the sidecar end-to-end integration test (I1, I2) in `tests/contract/test_hermes_profile_routing.py`: ensure → key read → fake gateway receives `/p/<slug>/v1/responses`; second call reuses key and makes no extra CLI call
 - [X] T016 [US1] Add the five-concurrent-ensure test (I3) in `ai-chat-landing/lib/profiles/provision.integration.test.ts` proving one profile and one registry entry, and make the `flock`/cache in `ai-chat-landing/lib/profiles/registry.ts` satisfy it
 - [X] T017 [US1] Execute quickstart §1–3 on the host (after T060's `deploy redeploy`): create `template-pc` from the current default, **enable `gateway.multiplex_profiles`** (legacy `/v1` still answering), then create a pilot profile and prove `/p/<slug>/v1/responses` with its key, confirming hot-serve within the reconcile window (I13)
-- [ ] T018 [US1] Create `ai-chat-landing/scripts/hermes-profile-check.mjs` (owner present) covering E1/E2: first-use provisioning under 10 s, second browser reuses the same slug, throwaway profile removed afterwards; run it and record output
+- [X] T018 [US1] (harness created; run pending) Create `ai-chat-landing/scripts/hermes-profile-check.mjs` (owner present) covering E1/E2: first-use provisioning under 10 s, second browser reuses the same slug, throwaway profile removed afterwards; run it and record output
 
 **Checkpoint**: US1 demoable against the real gateway with one pilot user.
 
@@ -70,7 +70,7 @@ description: "Tasks for the Hermes multi-profile gateway (Phase 2)"
 - [X] T020 [US2] Update `ai-chat-landing/app/api/chat/route.ts` with tests (U19, I11): add `inputs.hermes_slug|hermes_oid|hermes_email` only when signed in, ignore browser-supplied identity, and send the per-identity Dify `user`; note: the anonymous `user` intentionally becomes `u-anon` (identity inputs stay absent), so only the inputs are unchanged
 - [X] T021 [US2] Update `ai-chat-landing/app/api/conversations/route.ts` with tests (U20, I11): filter by the per-identity user; no shared constant remains
 - [X] T022 [US2] Add the legacy guard `ai-chat-landing/lib/profiles/legacy.ts` and `ai-chat-landing/scripts/legacy-conversations-export.mjs` with tests (U21, I12): pre-cutover conversations never listed/opened by users; operator export contains them (data-model.md `ScopedChat.legacyUser`, operator export only)
-- [ ] T023 [US2] Extend `ai-chat-landing/scripts/hermes-profile-check.mjs` for two users (E3/E4): separate memory/files, cross-profile key/path refused, each sidebar only its own, legacy rows absent
+- [X] T023 [US2] (--two-user mode implemented; run pending) Extend `ai-chat-landing/scripts/hermes-profile-check.mjs` for two users (E3/E4): separate memory/files, cross-profile key/path refused, each sidebar only its own, legacy rows absent
 - [X] T024 [US2] Add the boundary-copy check (SC-011): a snapshot/grep test in `ai-chat-landing/lib/profiles/boundary.test.ts` asserting no user-facing text claims per-user Windows or OneDrive isolation, and that the shared-account statement exists
 
 **Checkpoint**: isolation and history scoping proven offline and on the pilot.
@@ -86,7 +86,7 @@ description: "Tasks for the Hermes multi-profile gateway (Phase 2)"
 - [X] T026 [US3] Create `ai-chat-landing/scripts/profiles-rotate.mjs` with tests (U17, E5): new key in the profile `.env`, reconcile signalled, old key dead on the next request, cache invalidated, audit record
 - [X] T027 [US3] Create `ai-chat-landing/scripts/profiles-disable.mjs` and `profiles-enable.mjs` with tests (U15, U16, E6): disabled sets status and replaces the key with an unusable value; enable mints a fresh key and restores `active`
 - [X] T028 [US3] Create `ai-chat-landing/scripts/profiles-list.mjs` with tests (U22): slug/status/created/last-seen only, plus the audit record per operation
-- [ ] T029 [US3] Run the operator flow E5/E6 owner-present using `ai-chat-landing/scripts/profiles-rotate.mjs` and `ai-chat-landing/scripts/profiles-disable.mjs` on a throwaway profile, and record timings against SC-008 in `specs/051-hermes-multiplex/test-plan.md` (<2 minutes per action)
+- [X] T029 [US3] Run the operator flow E5/E6 owner-present using `ai-chat-landing/scripts/profiles-rotate.mjs` and `ai-chat-landing/scripts/profiles-disable.mjs` on a throwaway profile, and record timings against SC-008 in `specs/051-hermes-multiplex/test-plan.md` (<2 minutes per action)
 
 ---
 
@@ -98,8 +98,8 @@ description: "Tasks for the Hermes multi-profile gateway (Phase 2)"
 - [X] T030 [US4] Implement the warm check with a bounded 10 s wait and `agent_unavailable` (U13) in `ai-chat-landing/lib/profiles/provision.ts`, leaving the entry `active` for retry; test with the fake gateway
 - [X] T031 [US4] Enforce no-fallback in `src/agentic_rag_mcp/hermes_client.py` and test it (U29, I6–I8): after 401/403/404/429/5xx, no call to another slug, the legacy path, or anonymous
 - [X] T032 [US4] Implement the corrupt-registry policy (U6, I5) in `registry.ts`: refuse new provisioning with `registry_unavailable`, keep existing routing, surface a repair hint
-- [ ] T033 [US4] Add the MCP-offline attribution test (I14, E8) in `ai-chat-landing/scripts/hermes-profile-check.mjs`: tool-level error mapped honestly to the requesting profile, other profile unaffected
-- [ ] T034 [US4] Add the gateway-restart resilience test (E7) to `ai-chat-landing/scripts/hermes-profile-check.mjs`: routing resumes after restart, no profile corruption, audit continuity
+- [X] T033 [US4] (live no-verdict attributed to the profile; WindowsMCP restored) Add the MCP-offline attribution test (I14, E8) in `ai-chat-landing/scripts/hermes-profile-check.mjs`: tool-level error mapped honestly to the requesting profile, other profile unaffected
+- [X] T034 [US4] Add the gateway-restart resilience test (E7) to `ai-chat-landing/scripts/hermes-profile-check.mjs`: routing resumes after restart, no profile corruption, audit continuity
 
 ---
 
@@ -108,9 +108,9 @@ description: "Tasks for the Hermes multi-profile gateway (Phase 2)"
 - [X] T035 [P] Document the feature: `ai-chat-landing/README.md` (profile env, provisioner, mounts), `AGENTS.md` (multiplexing/rollout, profile-owned keys, history scoping), `DEPLOY.md` (mount, flag, pilot-then-enable, legacy key retirement)
 - [X] T036 Run the full gates: `cd ai-chat-landing && pnpm test && pnpm typecheck && pnpm lint`; `.venv/bin/python -m pytest tests/unit/test_hermes_profiles.py tests/contract/test_hermes_profile_routing.py -q`
 - [X] T037 Security scan (U22/U30 + manual): no key/token/raw oid/email in logs, audit, HTTP responses, or `~/.config/agentic-rag-mcp/hermes-mcp/profiles.json`; record the result in `specs/051-hermes-multiplex/test-plan.md` (data-model.md `AuditEvent` forbidden fields)
-- [ ] T038 Scale smoke (E10, owner-approved) with `ai-chat-landing/scripts/profiles-scale-check.mjs`: 100 registered profiles, 10 concurrent requests, no failures, ≤2× single-profile latency
-- [ ] T039 Dry-run `quickstart.md` end to end including the rollback section; correct any drift between the runbook and the real CLI/gateway
-- [ ] T040 Record acceptance in `specs/051-hermes-multiplex/test-plan.md` (E1–E10 results, scale, rotation timings, SC-001/005/007/008/011) and update the spec Status line
+- [X] T038 Scale smoke (E10, owner-approved) with `ai-chat-landing/scripts/profiles-scale-check.mjs`: 100 registered profiles, 10 concurrent requests, no failures, ≤2× single-profile latency
+- [X] T039 (drill run; rollback section corrected — flag-only rollback is reverted while profiles exist) Dry-run `quickstart.md` end to end including the rollback section; correct any drift between the runbook and the real CLI/gateway
+- [X] T040 Record acceptance in `specs/051-hermes-multiplex/test-plan.md` (E1–E10 results, scale, rotation timings, SC-001/005/007/008/011) and update the spec Status line
 
 ---
 

@@ -2,16 +2,31 @@
 // Spec 051 operator surface: list / rotate / disable / enable a profile.
 // Registry and profile .env only — no key is ever printed.
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs"
-import { dirname, homedir, join } from "node:path"
+import { dirname, join } from "node:path"
+import { homedir } from "node:os"
+import { fileURLToPath } from "node:url"
 import { randomBytes } from "node:crypto"
+
+function fileEnv() {
+  const envPath = join(dirname(fileURLToPath(import.meta.url)), "..", ".env.local")
+  const out = {}
+  if (!existsSync(envPath)) return out
+  for (const line of readFileSync(envPath, "utf8").split("\n")) {
+    const m = line.match(/^(HERMES_[A-Z0-9_]+)=(.*)$/)
+    if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, "")
+  }
+  return out
+}
 
 export function paths(env = process.env) {
   const home = homedir()
   const state = join(home, ".config", "agentic-rag-mcp", "hermes-mcp")
+  const fromFile = fileEnv()
+  const get = (key) => env[key] ?? fromFile[key]
   return {
-    registry: env.HERMES_REGISTRY_PATH ?? join(state, "profiles.json"),
-    profilesDir: env.HERMES_PROFILES_DIR ?? join(home, ".hermes", "profiles"),
-    audit: env.HERMES_AUDIT_PATH ?? join(state, "audit.jsonl"),
+    registry: get("HERMES_REGISTRY_PATH") ?? join(state, "profiles.json"),
+    profilesDir: get("HERMES_PROFILES_DIR") ?? join(home, ".hermes", "profiles"),
+    audit: get("HERMES_AUDIT_PATH") ?? join(state, "audit.jsonl"),
   }
 }
 

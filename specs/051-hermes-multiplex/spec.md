@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-25
 
-**Status**: Draft
+**Status**: Implemented — live acceptance recorded (T018/T023/T029/T033/T034/T038/T039); rollback requires profile removal, not the multiplex flag
 
 **Input**: User description: "Setup hermes-multiplex — Phase 2 of the HERMES architecture: one host gateway, one port, routing by `/p/<slug>/`, per-profile API keys, one profile per user created on demand, driven by the Phase 1 Entra identity."
 

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
@@ -6,30 +6,13 @@ import type { ProfilesConfig } from "./config"
 import { ensureProfile } from "./provision"
 import { Registry } from "./registry"
 
-function cfgFor(dir: string): ProfilesConfig {
-  return {
-    provisionToken: "token",
-    profilesDir: join(dir, "profiles"),
-    templateProfile: "template-pc",
-    winUser: "PC12345",
-    registryPath: join(dir, "profiles.json"),
-    auditPath: join(dir, "audit.jsonl"),
-    gatewayUrl: "http://gateway.test",
-  }
+import { ALICE as alice, BOB, profilesConfigFor, stubHermesCli } from "./testing/harness"
+
+function cfgFor(dir: string) {
+  return profilesConfigFor(dir)
 }
 
-function stubCli(cfg: ProfilesConfig, calls: string[][]) {
-  return async (args: string[]) => {
-    calls.push(args)
-    const slug = args[2]
-    const home = join(cfg.profilesDir, slug)
-    mkdirSync(home, { recursive: true })
-    writeFileSync(join(home, "config.yaml"), "model: test\n")
-    writeFileSync(join(home, ".env"), "API_SERVER_KEY=CLONED_FROM_TEMPLATE\nOTHER=1\n", { mode: 0o600 })
-  }
-}
-
-const alice = { slug: "alice-chen-contoso-com", oid: "11111111-1111-1111-1111-111111111111", email: "alice.chen@contoso.com", displayName: "Alice Chen" }
+const stubCli = (cfg: ProfilesConfig, calls: string[][] = []) => stubHermesCli(cfg, calls).run
 
 describe("ensureProfile (U8–U11, I1–I4, SC-009)", () => {
   it("creates the profile, mints a unique key, and writes USER.md", async () => {
@@ -62,9 +45,9 @@ describe("ensureProfile (U8–U11, I1–I4, SC-009)", () => {
     let n = 0
     const deps = { runCli: stubCli(cfg, calls), warm: async () => true, keyFor: () => `KEY_${++n}` }
     await ensureProfile(cfg, alice, deps)
-    await ensureProfile(cfg, { ...alice, slug: "bob-ng-tvb-com-hk", oid: "22222222-2222-2222-2222-222222222222", email: "bob.ng@tvb.com.hk", displayName: "Bob Ng" }, deps)
+    await ensureProfile(cfg, BOB, deps)
     const a = readFileSync(join(cfg.profilesDir, alice.slug, ".env"), "utf8")
-    const b = readFileSync(join(cfg.profilesDir, "bob-ng-tvb-com-hk", ".env"), "utf8")
+    const b = readFileSync(join(cfg.profilesDir, BOB.slug, ".env"), "utf8")
     expect(a).toContain("API_SERVER_KEY=KEY_1")
     expect(b).toContain("API_SERVER_KEY=KEY_2")
     expect(a).not.toBe(b)

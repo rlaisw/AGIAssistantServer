@@ -105,7 +105,7 @@ Each writes an audit record; none require a gateway restart.
 
 ## 7. Rollback
 
-- Disable `multiplex_profiles`, restart the gateway, restore the legacy shared key for lane calls.
+- **A flag-only rollback does not work on this build** (verified 2026-11-26): with profile homes present, Hermes re-enables `multiplex_profiles` on restart. To stop serving profiles, remove or rename the profile homes with operator approval and restart the gateway; the legacy `/v1` shared-key path stays available throughout.
 - Per-profile data stays on disk; the index remains valid; re-enabling is non-destructive.
 - Chat history cutover rollback is not automated: the legacy constant is only a read-side export after cutover.
 

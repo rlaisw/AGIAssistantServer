@@ -145,6 +145,20 @@ Each row asserts an honest message, the documented status, an audit record, and 
 
 ## Results
 
+**2026-11-26 — T023/T033/T038/T039 live (owner present)**
+
+- T023 passed with two accounts: `raymond.lai@tvb.com.hk` → `raymond-lai-tvb-com-hk`, `billy.test@tvb.com.hk` → `billy-test-tvb-com-hk`; both routed independently and the gateway served both under `/p/`.
+- T033: with the WindowsMCP process stopped (task terminated, port 8800 down), a launch turn returned an honest **no-verdict** ("the tool call was cut off… nothing is confirmed") instead of claiming success, and the routing audit still attributed the turn to `raymond-lai-tvb-com-hk`. WindowsMCP was restored immediately after.
+- T038 passed: 100 template-cloned profiles created in 8.7 s; after reconcile, **10 concurrent** `/p/<slug>/v1/models` requests → **10/10 OK**, wall 377 ms, p95 276 ms; all throwaway profiles and 99 leftover dirs removed (one earlier cleanup gap fixed by deleting the remaining `scale-*` set).
+- T039: the rollback drill found a real behavior — flipping `multiplex_profiles` to false is reverted by the gateway on restart while profiles exist. `quickstart.md` §7 was corrected: rollback means removing/renaming profile homes (operator-approved), not the flag.
+
+
+
+- T018 passed on the signed-in lane (`raymond.lai@tvb.com.hk`): chat accepted, profile `raymond-lai-tvb-com-hk` ensured once, one `routing` record, `/p/<slug>/v1/models` 200, and the lane executed `ipconfig` (38.2 s, attributed to the profile).
+- T034 passed: `hermes gateway restart -y --detach`, all four profiles back on one PID, legacy `/v1` 200 and profile `/v1/models` 200, then the same acceptance run passed again.
+- T029 passed live: rotate 187 ms (old key 401, new key 200), disable 225 ms (key refused, status disabled), enable 129 ms (new key 200, status active) — all far under SC-008's 2 minutes.
+- Fixes found during live runs: identity parameters are now **bound in the DSL** to the start-node variables (the model cannot be trusted to echo `{{#...#}}` placeholders); the operator CLI now reads `.env.local` and its `homedir` import was corrected; the harness reads both audit files (index dir and sidecar config dir).
+
 **2026-11-26 — live pilot (owner present)**
 
 - `template-pc` created from `default` with **no** `API_SERVER_KEY`; `pilot-alice` cloned and given its own minted key. `gateway.multiplex_profiles` was already `true`; `hermes gateway list` serves default, template-pc, pilot-alice from one PID.

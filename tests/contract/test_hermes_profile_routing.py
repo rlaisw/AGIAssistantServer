@@ -89,10 +89,7 @@ def test_ensure_then_route_with_profile_key(tmp_path):
         def log_message(self, *args):
             pass
 
-    def start(handler):
-        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        return server
+    from tests.fixtures.hermes_http import start_server as start
 
     ensure_server = start(Ensure)
     gateway_server = start(Gateway)
@@ -209,10 +206,7 @@ def test_lane_uses_profile_when_identified_and_legacy_when_anonymous(tmp_path, m
         def log_message(self, *a):
             pass
 
-    def start(handler):
-        srv = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-        threading.Thread(target=srv.serve_forever, daemon=True).start()
-        return srv
+    from tests.fixtures.hermes_http import start_server as start
 
     ensure_srv, gw_srv = start(Ensure), start(Gateway)
     try:
