@@ -10,7 +10,12 @@ export function AuthErrorBanner() {
   React.useEffect(() => {
     const url = new URL(window.location.href)
     const code = url.searchParams.get("auth_error")
-    queueMicrotask(() => setMessage(authErrorMessage(code)))
+    // StrictMode double-mount: the second effect run sees the already-stripped
+    // URL; nulling then would erase the banner just shown — set only when set.
+    queueMicrotask(() => {
+      const message = authErrorMessage(code)
+      if (message) setMessage(message)
+    })
     if (code) {
       url.searchParams.delete("auth_error")
       window.history.replaceState({}, "", url)

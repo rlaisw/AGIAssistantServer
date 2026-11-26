@@ -155,6 +155,16 @@ An unregistered return address is rejected by the organization's sign-in before 
 - Not run yet (owner present, real tenant): E1–E9, the `--two-browser` mode, and the fresh-tenant runbook steps T024–T026. The scripts exist and pass `node --check`; no result is claimed for them.
 - Secret scan: no `ENTRA_CLIENT_SECRET` or token-shaped value in tracked files; only documentation placeholders (`DIFY_API_KEY=app-your-key-here`).
 
+**2026-11-26 — E1–E4 + E6/E7, owner present, CDP automation (`scripts/entra-auth-check.mjs`)**
+against `https://agia.tvb.com.hk` via the nginx origin (headful Chrome 155, `--remote-debugging-port=9240`; WSL mirrored DNS pinned to loopback for the run).
+
+- **T19 final run — all checks passed:** E2 anonymous session ✓, sign-in control ✓, chat composer without sign-in ✓; E1 SC-001 sign-in **0.8 s / 1 script-side interaction** ✓ (SSO with a warm Microsoft session), authenticated ✓, display name returned ✓, `hermes_session` not readable via `document.cookie` ✓ (HttpOnly), **header shows the display name** ✓ (race-safe 15 s retry added to the check), E7 expiry ≤ 12 h ✓; E3 sign-out returns to anonymous ✓.
+- **T22 `--two-browser`:** E6 — two independent browser contexts signed in as the same member: same email `raymond.lai@tvb.com.hk` ✓ and same display name ✓ (second context authenticated via SSO); E2/E1/E3 green in the same run.
+- **E4 cancel path (real route):** `GET /api/auth/callback/entra?error=access_denied` → 302 `/?auth_error=signin_cancelled` → banner `[role="alert"]` "Sign-in was cancelled." with Dismiss, param stripped from the address bar ✓ (CDP probe). With a warm SSO session the interactive Microsoft screen is skipped, so the cancel was exercised at the callback boundary — the exact surface a user's "Cancel" hits.
+- **Bug found and fixed (banner was StrictMode-fragile):** in dev (StrictMode double-mount) the banner's second effect run read the already-stripped URL, got `null`, and erased the message it had just set — the banner never appeared on `/?auth_error=…`. Fixed in `components/auth-error-banner.tsx` (set the message only when non-null); regression test `components/auth-error-banner.test.ts` renders under `React.StrictMode` and asserts the message survives and the param strips (jsdom; first component-tier test, `vitest.config.ts` include extended).
+- SC-001 timing context: cold manual password+MFA login in a fresh profile measured **89.9 s** (includes typing); warm SSO re-entry **0.8–1.0 s**. The ≤30 s/≤3-interaction criterion is the org-SSO scenario (met: 0.8 s, 1 interaction) — recorded honestly, not assumed.
+- Flaky-check note: `E1 header shows the display name` was racy on fast SSO (the session API can report authenticated before the post-redirect page re-renders); the script now retries up to 15 s. Two earlier runs (narrow window ≤640 px + leaked session) diagnosed and were superseded by the final clean run above.
+
 ## Definition of Done for this feature
 
 1. `pnpm test` green including all U/I cases; `pnpm typecheck` and `pnpm lint` clean.

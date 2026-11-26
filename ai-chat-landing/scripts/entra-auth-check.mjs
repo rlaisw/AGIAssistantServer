@@ -167,10 +167,16 @@ try {
     "E1 session cookie is not readable by scripts",
     await page.evalJS(`!document.cookie.includes("hermes_session")`),
   )
-  check(
-    "E1 header shows the display name",
-    await page.evalJS(`document.body.innerText.includes(${JSON.stringify(signedIn.user.displayName)})`),
-  )
+  // race-safe: with fast SSO the session API can report authenticated while
+  // the post-redirect page is still mounting — give the header render a window
+  let headerOk = false
+  for (let i = 0; i < 15 && !headerOk; i++) {
+    headerOk = await page
+      .evalJS(`document.body.innerText.includes(${JSON.stringify(signedIn.user.displayName)})`)
+      .catch(() => false)
+    if (!headerOk) await sleep(1000)
+  }
+  check("E1 header shows the display name", headerOk)
   check(
     "E7 session expiry is at most 12 h away",
     Date.parse(signedIn.expiresAt) - Date.now() <= 12 * 60 * 60 * 1000,
