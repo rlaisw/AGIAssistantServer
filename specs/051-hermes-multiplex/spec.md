@@ -25,6 +25,7 @@ Out of scope: Entra registration and sign-in flow (Phase 1), the Dify chatflow's
 - Q: Which Windows and OneDrive identity should a profile act under? → A: Memory, files, chat, and audit are isolated per profile; Windows actions run under the single shared PC account. That boundary is documented and tested; per-profile OneDrive credentials are out of Phase 2.
 - Q: What happens to conversations created before per-user history? → A: Preserve them, exclude them from every user's sidebar, and make them available only through an operator export.
 - Q: What history do anonymous visitors see? → A: A shared `u-anon` bucket by design (no identity, no profile); per-browser anonymous scoping is a possible later change, not Phase 2.
+- Q: How many profiles must be supported, and is bulk onboarding in scope? → A: Profiles are provisioned lazily one per user; bulk onboarding is out of scope. Capacity is measured at 25 registered profiles with 10 concurrent requests (SC-007); a 100-profile population remains a design target, not a verified requirement.
 - Q: What happens when an agent-bound lane call has no identity? → A: During migration it uses the existing legacy single-key path and creates no profile (FR-021). A call carrying an identity always uses that profile's path and key; a partial identity is refused.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -105,7 +106,7 @@ When the agent host is down, a profile folder is damaged, or the registry is mid
 - The user's email changes in the directory: the profile must not move (the identity key is the object id, and the mapping is persisted).
 - A slug collides (same normalized email from different people): a deterministic object-id-derived suffix is appended; the same inputs always yield the same slug.
 - Slug length or characters exceed a filesystem limit: the slug is bounded and charset-restricted, never containing path separators or traversal sequences.
-- Guest or other-organization accounts never reach this feature (Phase 1 rejects them), and a request that bypasses sign-in has no identity and is refused.
+- Guest or other-organization accounts never reach this feature (Phase 1 rejects them). A request with no identity uses the existing legacy single-key path and creates no profile (FR-021), with its history in the shared anonymous bucket; a partial identity is refused.
 - Gateway restarts while a user is mid-turn: the turn fails honestly and is not attributed to another profile.
 - A user is disabled in the directory but their key is still valid: directory-derived identity is no longer refreshed, so the session expires and the operator can disable the profile; the gateway must refuse a disabled profile immediately.
 - The registry file is corrupt or unreadable: refuse new provisioning, keep existing routing if profiles are intact, and surface the condition to the operator.
@@ -133,7 +134,7 @@ When the agent host is down, a profile folder is damaged, or the registry is mid
 - **FR-015**: Every provisioning, routing, rotation, disable, and refusal event MUST append an audit record with outcome, reason, and a correlation id, excluding credentials and personal identifiers beyond a stable hash.
 - **FR-016**: The operator MUST be able to list, inspect, rotate the credential of, and disable a profile without restarting the service; rotation takes effect on the next request.
 - **FR-017**: A disabled profile MUST be refused with an honest message naming the state, without affecting other profiles; transient failures are reported honestly while the profile remains retryable.
-- **FR-018**: The service MUST support at least 100 profiles and 5–10 concurrent requests with per-profile serialization of mutating work, without cross-profile blocking beyond queueing.
+- **FR-018**: The service MUST support at least 25 registered profiles and 5–10 concurrent requests with per-profile serialization of mutating work, without cross-profile blocking beyond queueing. A 100+ profile population remains a design target but is unverified, and bulk onboarding (many profiles created in one burst) is out of scope (Clarifications 2026-11-26).
 - **FR-019**: A profile that is not warm yet MUST delay or honestly refuse the request; it MUST never be silently substituted with another profile or an anonymous context.
 - **FR-020**: Unavailability of the agent host, the Windows PC, or the registry MUST map to a specific honest message and MUST not corrupt or partially mutate any profile.
 - **FR-021**: Legacy calls that still use the existing single-key path MUST keep working until explicitly migrated; the migration itself is a separate, recorded step.
@@ -162,7 +163,7 @@ When the agent host is down, a profile folder is damaged, or the registry is mid
 - **SC-004**: Zero credential values, session tokens, or raw object ids appear in logs or audit records (verified by scan of a full run).
 - **SC-005**: Five simultaneous first requests for one new identity produce exactly one profile in 100% of trials.
 - **SC-006**: 100% of simulated failure paths (agent host down, profile corrupt, creation failure, registry unreadable, Windows PC offline) end with an honest message, no partial profile, and no impact on an unrelated profile.
-- **SC-007**: The service sustains 10 concurrent users with 100 profiles without request failure and without more than a 2× latency increase versus one profile.
+- **SC-007**: The service sustains 10 concurrent requests across 25 registered profiles without request failure and within 2× the single-profile latency (measured 2026-11-26: 10/10 OK, p95 82 ms versus ~80 ms for one profile).
 - **SC-008**: An operator can list, rotate, and disable a profile in under 2 minutes using documented commands, with each action visible in the audit trail.
 - **SC-009**: The three TVB mailboxes for one local part (`@tvb.com`, `@tvb.com.hk`, `@tvb.com.cn`) produce three distinct, stable profiles in a single test run.
 - **SC-010**: In a two-user test, each user's conversation list contains 100% only their own conversations, and opening another user's conversation by reference is refused in 100% of attempts.

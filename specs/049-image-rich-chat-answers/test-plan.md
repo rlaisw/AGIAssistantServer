@@ -86,3 +86,22 @@ cd ai-chat-landing && node scripts/image-rich-check.mjs
 - `fetch_url` alt text (would break the contract; model writes alt).
 - Knowledge-base documents and chat attachments (FR-013).
 - A UI fallback component for dead images (alt text already covers it).
+
+## 8. Results
+
+**2026-11-26 — T029/T031/T032 unit (offline)**
+
+- T029: `_img_srcs` accepts quoted, unquoted, and `srcset`/`data-srcset` (first candidate); `extract_sections` falls back to srcset. Cases: `test_srcset_only_lazy_image_extracted`, `test_fetch_srcs_accept_srcset_and_unquoted`.
+- T031: leading section `heading` is `""` per `data-model.md` §PageImage. Case: `test_leading_section_heading_is_empty`.
+- T032: `sections_to_text` omits `IMG_SKIP` URLs. Case: `test_text_markers_skip_noise_images`.
+- Full suite: `.venv/bin/python -m pytest tests/unit tests/contract -q` → **1482 passed**.
+
+**2026-11-26 — T030 default-mode placement (live CDP, headless Chrome 155, app on :3000)**
+
+- E1 answer: 4 images, 0 missing alt, 0 empty src; text positions 459, 583, 865, 1337 of 2134 → not clustered at the end. **PASS**; throwaway conversation deleted.
+
+**2026-11-26 — T028 PDF export (live CDP, same answer path, `--pdf`)**
+
+- E1 answer: 8 images, 0 missing alt, 0 empty src; positions 647–1690 of 2621.
+- Export downloaded `049-default-…-show-me-the-st.pdf`, 530,205 bytes; `pdfimages -list` reports 5 embedded image rows; `pdftotext` has no export-error text. **PASS**; throwaway conversation deleted.
+

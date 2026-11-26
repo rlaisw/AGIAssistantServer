@@ -5,17 +5,26 @@
 //   E2 --overview  overview answer inlines >=2 images, not all clustered at the end
 //   E3 --non-visual  "capital of France" stays text-only (0 images)
 //   E4 --cap  a gallery request inlines >=1 image and never more than 10 (FR-011)
-// Usage: node image-rich-check.mjs [--overview|--non-visual|--cap]
+//   --pdf  reuses the E1 answer, exports the conversation PDF, and verifies the
+//          download embeds at least one image with no export error text (T028)
+// Usage: node image-rich-check.mjs [--overview|--non-visual|--cap|--pdf]
 // Every throwaway conversation is deleted at the end (spec-015 flow).
 
 import { argv } from "node:process"
+import { spawnSync } from "node:child_process"
+import { mkdirSync, readdirSync, statSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 const CDP = "http://localhost:9240"
 const APP = "http://localhost:3000"
-const MODE = argv.includes("--overview") ? "overview"
+const PDF = argv.includes("--pdf")
+const MODE = PDF ? "default"
+  : argv.includes("--overview") ? "overview"
   : argv.includes("--non-visual") ? "non-visual"
   : argv.includes("--cap") ? "cap" : "default"
 const STAMP = Date.now()
+const DOWNLOAD_DIR = join(tmpdir(), `kilo-pdf-049-${STAMP}`)
 
 const CASES = {
   default: {
@@ -146,8 +155,13 @@ async function waitSettled(timeoutMs) {
     await sleep(400)
   }
 }
+if (PDF) {
+  mkdirSync(DOWNLOAD_DIR, { recursive: true })
+  const behavior = { behavior: "allow", downloadPath: DOWNLOAD_DIR }
+  const set = await send("Browser.setDownloadBehavior", { ...behavior, eventsEnabled: true })
+  if (set.error) await send("Page.setDownloadBehavior", behavior)
+}
 await navigate()
-
 // ---- E1/E2/E3: single fresh conversation ----
 await newChat()
 const marker = `049-${MODE}-${STAMP}`
@@ -175,10 +189,37 @@ if (MODE === "cap") {
   check(`E${MODE === "overview" ? "2" : "1"} image count >= ${CASE.minImages}`, count >= CASE.minImages, `count=${count}`)
   check(`E${MODE === "overview" ? "2" : "1"} every image has non-empty alt`, emptyAlt === 0, `missing alt=${emptyAlt}`)
   check(`E${MODE === "overview" ? "2" : "1"} no empty image src`, emptySrc === 0, `empty src=${emptySrc}`)
-  if (MODE === "overview" && count > 0) {
+  if ((MODE === "overview" || MODE === "default") && count > 0) {
     const clustered = imgs.every(i => i.textPos > ans.len * 0.7)
-    check("E2 images are not all clustered at the end", !clustered,
+    check(`E${MODE === "overview" ? "2" : "1"} images are not all clustered at the end`, !clustered,
       `text positions ${imgs.map(i => i.textPos).join(",")} of ${ans.len}`)
+  }
+}
+
+// ---- T028: PDF export of the same answer ----
+if (PDF) {
+  const clicked = await evalJS(`(() => {
+    const b = document.querySelector('button[aria-label="Download conversation as PDF"]')
+    if (!b) return false
+    b.click()
+    return true
+  })()`)
+  check("T028 PDF export button found", clicked)
+  let pdf = null
+  for (let i = 0; i < 90; i++) {
+    await sleep(1000)
+    const name = readdirSync(DOWNLOAD_DIR).find(n => n.endsWith(".pdf"))
+    if (name) { pdf = join(DOWNLOAD_DIR, name); if (statSync(pdf).size > 0) break }
+  }
+  const size = pdf ? statSync(pdf).size : 0
+  check("T028 PDF downloaded", !!pdf, pdf || `no .pdf in ${DOWNLOAD_DIR}`)
+  check("T028 PDF is non-trivial", size > 20000, `${size} bytes`)
+  if (pdf) {
+    const list = spawnSync("pdfimages", ["-list", pdf], { encoding: "utf8" })
+    const rows = (list.stdout || "").trim() ? (list.stdout || "").trim().split("\n").length - 2 : 0
+    check("T028 PDF embeds at least one image", rows >= 1, `${rows} image row(s)`)
+    const text = (spawnSync("pdftotext", [pdf, "-"], { encoding: "utf8" }).stdout || "")
+    check("T028 PDF has no export error text", !/Could not generate the PDF|image failed|Image unavailable/i.test(text))
   }
 }
 

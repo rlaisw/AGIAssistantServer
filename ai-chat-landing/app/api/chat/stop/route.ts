@@ -2,14 +2,14 @@
 // stays server-side; the browser only ever sees this route.
 export const runtime = "nodejs"
 
-const DIFY_USER = "ai-chat-ui-user" // must match the chat proxy's end-user id
+import { difyUserFor, identityInputs, requestIdentity } from "@/lib/profiles/identity-user"
 
 const SIDECAR_MCP =
   (process.env.SIDECAR_MCP_URL ?? "http://localhost:28080") + "/mcp"
 
 // 3-step stateless streamable-HTTP MCP dance (same envelope the battery's
 // probes use): initialize -> initialized -> tools/call hermes_cancel_turn.
-async function cancelSidecarTurn(conversationId: string): Promise<void> {
+async function cancelSidecarTurn(conversationId: string, identityArgs: Record<string, string>): Promise<void> {
   const post = (payload: unknown) =>
     fetch(SIDECAR_MCP, {
       method: "POST",
@@ -30,11 +30,12 @@ async function cancelSidecarTurn(conversationId: string): Promise<void> {
   await post({
     jsonrpc: "2.0", id: 2, method: "tools/call",
     params: { name: "hermes_cancel_turn",
-              arguments: { conversation_id: conversationId } },
+              arguments: { conversation_id: conversationId, ...identityArgs } },
   })
 }
 
 export async function POST(req: Request) {
+  const identity = requestIdentity(req)
   const { taskId, conversationId } = (await req.json().catch(() => ({}))) as {
     taskId?: unknown
     conversationId?: unknown
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
   // interrupts the agent. Fire-and-forget with a short timeout: the chat's
   // own stop must never block on the sidecar.
   if (typeof conversationId === "string" && conversationId.trim()) {
-    void cancelSidecarTurn(conversationId).catch(() => {})
+    void cancelSidecarTurn(conversationId, identityInputs(identity)).catch(() => {})
   }
 
   const apiKey = process.env.DIFY_API_KEY
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({ user: DIFY_USER }),
+        body: JSON.stringify({ user: difyUserFor(identity) }),
         signal: AbortSignal.timeout(10_000),
       }
     )

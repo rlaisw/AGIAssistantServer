@@ -66,6 +66,14 @@ def guarded_get(url: str, timeout: float) -> httpx.Response:
 _MIN_PARAGRAPH = 30  # substantive text floor
 
 
+def _first_srcset(value: str | None) -> str | None:
+    """First candidate URL of a srcset attribute (lazy images often use only it)."""
+    if not value:
+        return None
+    candidate = value.split(",")[0].strip()
+    return candidate.split()[0] if candidate else None
+
+
 def extract_sections(html: str, page_url: str, per_page_chars: int) -> tuple[list[dict], bool]:
     """Sections preserve document order: heading, then text blocks and the
     images belonging to that text interleaved (never all-text-then-images).
@@ -80,8 +88,7 @@ def extract_sections(html: str, page_url: str, per_page_chars: int) -> tuple[lis
     main = soup.find("article") or soup.find("main") or soup.body
     if main is None:
         return [], False
-    h1 = soup.find("h1")
-    current: dict = {"heading": h1.get_text(strip=True) if h1 else "", "blocks": []}
+    current: dict = {"heading": "", "blocks": []}
     sections: list[dict] = []
     truncated = False
     budget = per_page_chars
@@ -105,7 +112,7 @@ def extract_sections(html: str, page_url: str, per_page_chars: int) -> tuple[lis
             img = el if el.name == "img" else el.find("img")
             if img is None or el.name == "img" and el.find_parent("figure") is not None:
                 continue  # handled via its figure — don't double-count
-            src = img.get("src") or img.get("data-src")
+            src = img.get("src") or img.get("data-src") or _first_srcset(img.get("srcset") or img.get("data-srcset"))
             if src and not src.startswith("data:"):
                 current["blocks"].append({"type": "img", "src": urljoin(page_url, src),
                                           "alt": (img.get("alt") or "").strip()})
@@ -145,7 +152,10 @@ def sections_to_text(sections: list[dict]) -> str:
         if sec["heading"]:
             lines.append(sec["heading"])
         for b in sec["blocks"]:
-            lines.append(b["text"] if b["type"] == "p" else f"[image: {b['src']}]")
+            if b["type"] == "p":
+                lines.append(b["text"])
+            elif not any(bad in b["src"].lower() for bad in IMG_SKIP):
+                lines.append(f"[image: {b['src']}]")
     return "\n".join(lines)
 
 

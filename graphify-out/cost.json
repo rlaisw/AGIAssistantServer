@@ -72,8 +72,14 @@
       "output_tokens": 0,
       "files": 70,
       "note": "semantic chunks written by subagents; usage not reported in chunk JSON"
+    },
+    {
+      "date": "2026-11-26T12:03:28.725065+00:00",
+      "input_tokens": 85000,
+      "output_tokens": 33500,
+      "files": 128
     }
   ],
-  "total_input_tokens": 219800,
-  "total_output_tokens": 104800
+  "total_input_tokens": 304800,
+  "total_output_tokens": 138300
 }

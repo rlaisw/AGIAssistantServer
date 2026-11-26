@@ -7,11 +7,15 @@
 //
 //   RUN_ENTRA_E2E=1 node ai-chat-landing/scripts/entra-auth-check.mjs
 //   RUN_ENTRA_E2E=1 node ai-chat-landing/scripts/entra-auth-check.mjs --two-browser
+// Sign-in is origin-bound to ENTRA_REDIRECT_URI: when that origin is not
+// localhost (e.g. https://agia.tvb.com.hk), point the script at it so the
+// callback lands in the driven tab:
+//   ENTRA_CHECK_APP=https://agia.tvb.com.hk RUN_ENTRA_E2E=1 node …
 
 import { argv } from "node:process"
 
 const CDP = "http://localhost:9240"
-const APP = "http://localhost:3000"
+const APP = process.env.ENTRA_CHECK_APP ?? "http://localhost:3000"
 const TWO_BROWSER = argv.includes("--two-browser")
 const SIGNIN_TIMEOUT_MS = 180_000
 

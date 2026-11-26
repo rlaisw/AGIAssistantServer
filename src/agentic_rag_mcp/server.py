@@ -57,8 +57,25 @@ from .store.vectordb import VectorStore
 log = logging.getLogger("agentic_rag_mcp")
 
 
-_IMG_SRC_RE = re.compile(r"""<img[^>]+(?:src|data-src)=["']([^"']+)["']""", re.IGNORECASE)
+_IMG_SRC_RE = re.compile(
+    r"""<img[^>]+?(src|data-src|srcset|data-srcset)\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))""",
+    re.IGNORECASE,
+)
 _IMG_SKIP = IMG_SKIP  # shared with flatten_images (spec 049)
+
+
+def _img_srcs(html: str) -> list[str]:
+    """Every <img> source in document order: quoted or unquoted, with the
+    first candidate URL of a srcset (lazy-loaded images often ship only that)."""
+    out: list[str] = []
+    for attr, dq, sq, bare in _IMG_SRC_RE.findall(html):
+        raw = (dq or sq or bare).strip()
+        if "srcset" in attr.lower():
+            raw = raw.split(",")[0].strip()
+            raw = raw.split()[0] if raw else ""
+        if raw:
+            out.append(raw)
+    return out
 
 
 def _fetch_url(url: str, max_chars: int = 4000) -> dict:
@@ -76,7 +93,7 @@ def _fetch_url(url: str, max_chars: int = 4000) -> dict:
     final_url = str(resp.url)
     images: list[str] = []
     seen: set[str] = set()
-    for src in _IMG_SRC_RE.findall(resp.text):
+    for src in _img_srcs(resp.text):
         abs_url = urljoin(final_url, src.strip())
         low = abs_url.lower()
         if not abs_url.startswith(("http://", "https://")) or abs_url in seen:

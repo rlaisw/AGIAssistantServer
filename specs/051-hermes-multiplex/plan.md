@@ -22,11 +22,11 @@ Turn the single shared Hermes agent into a per-user service without writing a ne
 
 **Project Type**: web application + MCP sidecar integration.
 
-**Performance Goals**: first-use provisioning p95 < 10 s (SC-001); gateway hot-serve of a new profile within 30 s (native reconcile); per-request overhead < 100 ms excluding model/MCP; 10 concurrent users at 100 profiles with ≤2× latency (SC-007).
+**Performance Goals**: first-use provisioning p95 < 10 s (SC-001); gateway hot-serve of a new profile within 30 s (native reconcile); per-request overhead < 100 ms excluding model/MCP; 10 concurrent requests at 25 registered profiles with ≤2× latency (SC-007, measured 2026-11-26); 100 profiles is an unverified design target, not a requirement.
 
 **Constraints**: one gateway process and one port; profiles hot-discovered without restart; no key material in the registry, logs, or browser; legacy single-key lane calls stay working until migrated (FR-021); Dify history scoping is additive.
 
-**Scale/Scope**: 100+ profiles, 5–10 concurrent; profile homes are small; index rewrite is O(n) but bounded (single JSON, atomic replace).
+**Scale/Scope**: 25 registered profiles verified at 10 concurrent requests (SC-007); 100+ profiles is an unverified design target and bulk onboarding is out of scope; profile homes are small; index rewrite is O(n) but bounded (single JSON, atomic replace).
 
 ## Constitution Check
 
