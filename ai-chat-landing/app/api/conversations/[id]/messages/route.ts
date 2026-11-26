@@ -1,8 +1,8 @@
 export const runtime = "nodejs"
 
 import { mapMessagesPage } from "@/lib/history/mappers"
+import { difyUserFor, requestIdentity } from "@/lib/profiles/identity-user"
 
-const USER = "ai-chat-ui-user"
 
 /**
  * Dify 1.17 exposes message history at GET /messages?conversation_id=…
@@ -30,7 +30,7 @@ export async function GET(
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 100
   const cursor = searchParams.get("cursor")
   const q = new URLSearchParams({
-    user: USER,
+    user: difyUserFor(requestIdentity(req)),
     limit: String(limit),
     conversation_id: id,
   })

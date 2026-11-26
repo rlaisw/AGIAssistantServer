@@ -337,9 +337,19 @@ def _extract_text(body: dict[str, Any]) -> str:
     return ""
 
 
+def _responses_endpoint(base_url: str, profile: str | None) -> str:
+    """Legacy path unchanged; a profile adds the multiplexed ``/p/<slug>/`` prefix."""
+    if not profile:
+        return f"{base_url.rstrip('/')}/v1/responses"
+    from .hermes_profiles import assert_slug
+    return f"{base_url.rstrip('/')}/p/{assert_slug(profile)}/v1/responses"
+
+
 def run_task(cfg: Config, task: str,
              instructions: str = CONTAINMENT_INSTRUCTIONS,
-             timeout_s: float | None = None) -> dict[str, Any]:
+             timeout_s: float | None = None,
+             profile: str | None = None,
+             api_key: str | None = None) -> dict[str, Any]:
     """Run one gated task. Returns {"ok": True, "output": str} on success or
     {"ok": False, "error": reason-with-recovery-hint} on any failure.
 
@@ -351,8 +361,8 @@ def run_task(cfg: Config, task: str,
     budget = timeout_s if timeout_s is not None else cfg.hermes_timeout_s
     try:
         resp = httpx.post(
-            f"{cfg.hermes_api_url.rstrip('/')}/v1/responses",
-            headers={"Authorization": f"Bearer {cfg.hermes_api_key}",
+            _responses_endpoint(cfg.hermes_api_url, profile),
+            headers={"Authorization": f"Bearer {api_key or cfg.hermes_api_key}",
                      "Content-Type": "application/json"},
             json={"input": task, "instructions": instructions,
                   "store": False, "model": "hermes-agent"},
@@ -453,15 +463,17 @@ def _timing_profile(t0: float, first_event_s: float | None, event_count: int,
 
 
 def run_task_stream(cfg: Config, task: str, instructions: str, budget: float,
-                    inflight_key: str) -> dict[str, Any]:
+                    inflight_key: str,
+                    profile: str | None = None,
+                    api_key: str | None = None) -> dict[str, Any]:
     """Stream-mode run_task whose httpx client is registered under
     *inflight_key* — cancel_inflight(key) aborts the call and the gateway
     interrupts the agent (the blocking-JSON run_task cannot be stopped:
     measured 2026-11-09, the turn runs to natural completion after a client
     disconnect). The final response.completed SSE event carries the same
     response envelope run_task parses, so the output contract is identical."""
-    url = f"{cfg.hermes_api_url.rstrip('/')}/v1/responses"
-    headers = {"Authorization": f"Bearer {cfg.hermes_api_key}",
+    url = _responses_endpoint(cfg.hermes_api_url, profile)
+    headers = {"Authorization": f"Bearer {api_key or cfg.hermes_api_key}",
                "Content-Type": "application/json"}
     client = httpx.Client(timeout=budget)
     _register_inflight(inflight_key, client)

@@ -49,10 +49,12 @@ def test_recreate_run_command_carries_documents_mount():
     assert f"{home}/.config/agentic-rag-mcp:/root/.config/agentic-rag-mcp" in volumes
     assert f"{home}/.cache/huggingface:/root/.cache/huggingface" in volumes
     assert any(v.endswith(":/opt/ppt-master") for v in volumes)
-    # exactly six mounts — no duplicates; the fifth is office-x1's
+    # spec 051: read-only profiles mount for per-profile keys
+    assert f"{home}/.hermes/profiles:/hermes-profiles:ro" in volumes, volumes
+    # exactly seven mounts — no duplicates; the fifth is office-x1's
     # read-only Windows drive (the REPLACED: probe), the sixth is the
     # browser-lane scripted registry (chrome-not-desktop-automation, 2026-11-11)
-    assert len(volumes) == 6, volumes
+    assert len(volumes) == 7, volumes
     assert "/mnt/c:/mnt/c:ro" in volumes
     assert "/usr/local/scripts/browser" in " ".join(volumes)
 

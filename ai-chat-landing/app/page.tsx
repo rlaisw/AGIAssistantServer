@@ -32,6 +32,8 @@ import {
   User,
 } from "lucide-react"
 
+import { AuthControl } from "@/components/auth-control"
+import { AuthErrorBanner } from "@/components/auth-error-banner"
 import { ChatHistory } from "@/components/chat-history"
 import { ModelDropdown } from "@/components/model-dropdown"
 import { PdfExportButton } from "@/components/pdf-export-button"
@@ -1112,6 +1114,7 @@ export default function Page() {
               <Bot className="size-3.5" />
               AGI Chat
             </Badge>
+            <AuthControl />
             <PdfExportButton messages={active.messages} />
             <Button variant="outline" size="sm">
               <Share2 />
@@ -1150,6 +1153,8 @@ export default function Page() {
             </DropdownMenu>
           </div>
         </header>
+
+        <AuthErrorBanner />
 
         {active.messages.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-10">

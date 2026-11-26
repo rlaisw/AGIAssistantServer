@@ -90,7 +90,7 @@ describe("attachment preamble injection", () => {
       query: "hello",
       response_mode: "streaming",
       conversation_id: "",
-      user: "ai-chat-ui-user",
+      user: "u-anon",
     })
   })
 
@@ -104,5 +104,36 @@ describe("attachment preamble injection", () => {
     expect(body.query).toContain("TOKEN_42")
     expect(body.query).toContain("User question: what does it say?")
     expect(body.conversation_id).toBe("c1")
+  })
+})
+
+// spec 050 I13: sign-in is optional; an authenticated cookie must not change
+// the chat request at all (anonymous behavior is the contract).
+describe("anonymous chat is unchanged by auth (spec 050 I13)", () => {
+  async function captured(payload: Record<string, unknown>, cookie?: string) {
+    process.env.DIFY_API_KEY = "k"
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(new ReadableStream({ start(c) { c.close() } }), { status: 200 })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+    const req = new Request("http://local/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) },
+      body: JSON.stringify(payload),
+    })
+    await POST(req)
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    return String(init.body)
+  }
+
+  it("sends an identical upstream body with and without a session cookie", async () => {
+    process.env.DIFY_API_KEY = "k"
+    const anonymous = await captured({ query: "hello" })
+    vi.unstubAllGlobals()
+    const signedIn = await captured({ query: "hello" }, "hermes_session=abc123")
+    expect(signedIn).toBe(anonymous)
+    const body = JSON.parse(signedIn) as Record<string, unknown>
+    const keys = Object.keys(body).join(" ")
+    expect(keys).not.toMatch(/oid|email|hermes|identity/i)
   })
 })

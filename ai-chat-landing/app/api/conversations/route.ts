@@ -1,8 +1,7 @@
 export const runtime = "nodejs"
 
 import { mapConversationPage } from "@/lib/history/mappers"
-
-const USER = "ai-chat-ui-user"
+import { difyUserFor, requestIdentity } from "@/lib/profiles/identity-user"
 
 export async function GET(req: Request) {
   const apiKey = process.env.DIFY_API_KEY
@@ -18,7 +17,7 @@ export async function GET(req: Request) {
   const limitRaw = Number(searchParams.get("limit") ?? 20)
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 20
 
-  const params = new URLSearchParams({ user: USER, limit: String(limit) })
+  const params = new URLSearchParams({ user: difyUserFor(requestIdentity(req)), limit: String(limit) })
   if (cursor) params.set("last_id", cursor)
 
   let upstream: Response

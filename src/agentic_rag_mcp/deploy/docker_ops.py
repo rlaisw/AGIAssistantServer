@@ -75,6 +75,10 @@ def recreate_container(container: str, image: str, report) -> None:
     ] + [(os.path.join(REPO_ROOT, _PPT_MOUNT[0]), _PPT_MOUNT[1]),
          (os.path.join(REPO_ROOT, _BROWSER_SCRIPTS_MOUNT[0]),
           _BROWSER_SCRIPTS_MOUNT[1])]
+    # spec 051: the sidecar reads only the target profile's API_SERVER_KEY
+    # from this read-only mount; provisioning itself runs in the host app.
+    profiles_dir = os.path.join(home, ".hermes", "profiles")
+    os.makedirs(profiles_dir, exist_ok=True)
     _run(["docker", "rm", "-f", container])
     # the-value-of-cpu-is-impossibel (2026-11-14): the Windows host's real
     # logical-processor count, read from the WSL host at redeploy time
@@ -91,6 +95,14 @@ def recreate_container(container: str, image: str, report) -> None:
             for host, dest in mounts
             for flag in ("-v", f"{host}:{dest}")
         ],
+        "-v", f"{profiles_dir}:/hermes-profiles:ro",
+        "-e", "HERMES_PROFILES_DIR=/hermes-profiles",
+        *(["-e", f"HERMES_PROVISION_URL={os.environ['HERMES_PROVISION_URL']}"]
+          if os.environ.get("HERMES_PROVISION_URL") else []),
+        *(["-e", f"HERMES_PROVISION_TOKEN={os.environ['HERMES_PROVISION_TOKEN']}"]
+          if os.environ.get("HERMES_PROVISION_TOKEN") else []),
+        *(["-e", f"HERMES_GATEWAY_URL={os.environ['HERMES_GATEWAY_URL']}"]
+          if os.environ.get("HERMES_GATEWAY_URL") else []),
         "-p", "28080:28080", "--restart", "always",
         *([] if not win_cpus else ["-e", f"WINDOWS_LOGICAL_PROCESSORS={win_cpus}"]),
         image,

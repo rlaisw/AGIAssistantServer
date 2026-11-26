@@ -5,7 +5,16 @@ const nextConfig: NextConfig = {
   // used from remote machines (e.g. http://10.161.92.34:3000). Next dev
   // blocks cross-origin HMR/chunk requests otherwise (page loads, nothing
   // interactive works).
-  allowedDevOrigins: ["10.161.92.34", "http://10.161.92.34:3000"],
+  allowedDevOrigins: [
+    "10.161.92.34",
+    "http://10.161.92.34:3000",
+    "agia.tvb.com.hk",
+    "http://127.0.0.1:3000",
+    "localhost",
+    "127.0.0.1",
+    "http://agia.tvb.com.hk",
+    "https://agia.tvb.com.hk",
+  ],
   // spec 043: pdf-parse v2 (pdfjs) loads a worker module at runtime — Next
   // must not bundle it into the server chunk graph (the dev-bundled worker
   // path fails: "Cannot find module …/pdf.worker.mjs")

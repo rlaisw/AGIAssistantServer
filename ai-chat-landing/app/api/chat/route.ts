@@ -1,6 +1,7 @@
 export const runtime = "nodejs"
 
 import { buildPreamble } from "@/lib/attach/preamble"
+import { difyUserFor, identityInputs, requestIdentity } from "@/lib/profiles/identity-user"
 
 type StreamEvent = {
   // spec 027: additive "task" event — consumers must tolerate unknown types
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
   // preamble (the chatflow is text-only); no attachment -> query unchanged
   // and the upstream body stays byte-identical (pinned in route.test.ts)
   const attached = Array.isArray(attachments) ? attachments[0] : undefined
+  const identity = requestIdentity(req)
   const upstreamQuery =
     attached && typeof attached.text === "string"
       ? buildPreamble(
@@ -55,16 +57,18 @@ export async function POST(req: Request) {
       // spec 026: cloud selection is global (the published app is patched);
       // sends carry only the local switch. Absent input = cloud (else branch),
       // battery and legacy callers stay byte-identical when aiModel is omitted.
-      inputs:
-        aiModel === "local"
+      inputs: {
+        ...(aiModel === "local"
           ? { ai_model: "local" }
           : aiModel
             ? { ai_model: "cloud" }
-            : {},
+            : {}),
+        ...identityInputs(identity),
+      },
       query: upstreamQuery,
       response_mode: "streaming",
       conversation_id: conversationId ?? "",
-      user: "ai-chat-ui-user",
+      user: difyUserFor(identity),
     }),
   })
 

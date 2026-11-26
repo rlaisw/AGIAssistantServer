@@ -47,6 +47,30 @@ stores Dify's conversation_id per chat for multi-turn context.
 - Visual answers inline their source images (spec 049): `web_research` hits carry a flat `images` array (`url`/`alt`/`heading`), both strategy prompts require 3+ images grouped under the steps they illustrate (alt always, hard cap 10, never an invented URL), and image links written inside `think` blocks never render or count toward the cap
 - MCP-Action confirmations reuse the Markdown/follow-up renderers: the exact automatic-action offer is styled as a follow-up, and a captured verification screenshot is shown inline through the temporary `/mcp-action/screenshots/{token}` URL. Only the two reviewed actions (`windows_default_printer`, `word_printer_duplex`) can reach this path; the image proxy preserves upstream `no-store` so screenshot responses are not cached like ordinary remote images.
 
+## Per-user profiles (spec 051, in progress)
+
+Optional: when `PROFILES_PROVISION_TOKEN` is set, the app can provision a Hermes profile per signed-in identity.
+
+- `PROFILES_PROVISION_TOKEN` — internal bearer for `POST /api/profiles/ensure` and `GET /api/profiles/status`.
+- `HERMES_PROFILES_DIR` (default `~/.hermes/profiles`), `HERMES_TEMPLATE_PROFILE` (default `template-pc`), `HERMES_WIN_USER`, `HERMES_REGISTRY_PATH`.
+- Profiles are created lazily on the first agent-bound request; each profile owns its own `API_SERVER_KEY` (never stored in the registry).
+- Boundary: Windows and MCP actions run under the single shared Windows PC account. Profiles isolate memory, files, chat, and audit — not the Windows desktop session or its OneDrive account.
+- Chat history is scoped per identity (`u-<oidHash>`); anonymous visitors share the `u-anon` bucket by design. Pre-cutover conversations are hidden and exported with `node scripts/legacy-conversations-export.mjs --out <file>`.
+- Gateway multiplexing (`gateway.multiplex_profiles`) and the pilot rollout are operator steps — see `specs/051-hermes-multiplex/quickstart.md`.
+
+## Sign-in (Entra ID, spec 050)
+
+Optional organizational SSO; **anonymous chat is unchanged** and needs no account. With `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, and `ENTRA_REDIRECT_URI` configured, the header offers Sign in / Sign out and shows the signed-in display name.
+
+- Flow: OIDC authorization code + PKCE (S256), single-tenant, members only; state and nonce validated; ID token verified against the tenant JWKS.
+- Browser: only two opaque `HttpOnly; SameSite=Lax` handles (`hermes_session`, and `hermes_auth` during sign-in); `Secure` + `__Host-` outside local development. No token or claim ever reaches the page.
+- Server identity: `oid`, `tid`, `email` (fallback `preferred_username`), `displayName` stay server-side (`lib/auth/`). `requireIdentity()` is the guard Phase 2 calls.
+- Limits: 8-hour sliding idle, 12-hour absolute session; renewal uses the refresh token, one failure tolerated.
+- Sessions are in-process: restarting the dev server or redeploying signs everyone out.
+- No auth bypass switch exists, by design.
+
+Validation: `node scripts/entra-flow-check.mjs` (real tenant, 9 steps, no secret) and `RUN_ENTRA_E2E=1 node scripts/entra-auth-check.mjs` (owner present, Chrome `:9240`). Offline proof: `pnpm test` covers the fake-IdP flow, error matrix, and session math.
+
 ## Attachments
 
 The composer's paperclip attaches **one file per message** — PDF, Word

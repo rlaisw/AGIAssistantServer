@@ -1,6 +1,6 @@
-export const runtime = "nodejs"
+import { difyUserFor, requestIdentity } from "@/lib/profiles/identity-user"
 
-const USER = "ai-chat-ui-user"
+export const runtime = "nodejs"
 
 export async function DELETE(
   req: Request,
@@ -27,7 +27,7 @@ export async function DELETE(
         method: "DELETE",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         // Dify 1.17 expects user in the JSON body for DELETE (WhereisUserArg.JSON)
-        body: JSON.stringify({ user: USER }),
+        body: JSON.stringify({ user: difyUserFor(requestIdentity(req)) }),
       }
     )
   } catch (err) {

@@ -261,6 +261,32 @@ pnpm dev        # http://localhost:3000
 
 The API key stays server-side — the Next.js route handler `app/api/chat/route.ts` proxies `/api/chat` → Dify `/v1/chat-messages`, and `.env.local` is git-ignored. Without a key the UI runs in demo mode with canned replies. Never run `pnpm build` while `pnpm dev` is up in the same directory (they share `.next/`). Details: [`ai-chat-landing/README.md`](ai-chat-landing/README.md). Layout acceptance (spec 016): `node ai-chat-landing/scripts/wide-layout.mjs` measures the wide chat column via CDP (Chrome on `--remote-debugging-port=9240`); `--smoke` adds the behavioral checks (history buckets, Load more, PDF export, delete). Remote access from other machines: `next.config.ts` lists `allowedDevOrigins` (the host LAN IP) — add any new access origin there and restart `pnpm dev`, or the page renders but nothing is interactive.
 
+### Optional — Microsoft Entra ID sign-in (spec 050)
+
+Anonymous chat is the default; without the variables below `/api/auth/*` answers `config_invalid` and nothing else changes. To enable organizational sign-in:
+
+1. Follow `specs/050-azure-entra-oauth/quickstart.md` (single-tenant registration, exact redirect URI, ID-token optional claims `email`/`preferred_username`, 6-month secret).
+2. Add to `ai-chat-landing/.env.local` (or the deployed environment): `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_REDIRECT_URI=https://<chat-host>/api/auth/callback/entra`.
+3. Serve the UI over HTTPS in production — session cookies are `Secure` and `__Host-`-prefixed — and make sure the reverse proxy forwards `Set-Cookie` and the query string.
+4. Verify: `node ai-chat-landing/scripts/entra-flow-check.mjs` (operator 9-step harness, public client, no secret) and `RUN_ENTRA_E2E=1 node ai-chat-landing/scripts/entra-auth-check.mjs` (owner-present UI checks).
+
+Sessions live in-process: a redeploy signs everyone out (documented limitation, spec 050 data-model).
+
+#### Serving the Chat UI as `https://<host>` on this LAN (Dify nginx)
+
+The Dify stack publishes 80/443 through its own nginx (`docker-nginx-1`, mounts `dify/docker/nginx/{conf.d,ssl}`). Add a vhost there instead of a second proxy:
+
+1. `dify/docker/nginx/conf.d/zz-agia.conf` — **the `zz-` prefix matters**: nginx makes the first `listen 80` block the implicit default, so a name like `agia.conf` would capture every hostname (including `localhost`) and break Dify's `/v1` routing.
+2. Proxy `/` to the Chat UI on the host (`172.21.0.1:3000`, the compose network gateway) with `proxy_buffering off` (SSE), `X-Forwarded-Proto`/`X-Forwarded-Host`, and — **while running `next dev`** — the WebSocket upgrade headers (`map $http_upgrade $connection_upgrade`, `Upgrade`/`Connection`) and the host in `allowedDevOrigins`; without them the page renders but never hydrates (nothing is clickable). Production (`next start`) needs no upgrade headers.
+3. For TLS, place the public certificate at `dify/docker/nginx/ssl/agia/fullchain.pem` + `privkey.pem`, copy `dify/docker/nginx/zz-agia-tls.conf.staged` over `conf.d/zz-agia.conf`, then `docker exec docker-nginx-1 nginx -t && docker exec docker-nginx-1 nginx -s reload`.
+4. Keep `http://localhost:53682/callback` registered under *Mobile and desktop* for the operator harness; the app callback is `https://<host>/api/auth/callback/entra`.
+
+### Optional — Hermes per-user profiles (spec 051)
+
+1. Provision the template and pilot exactly as `specs/051-hermes-multiplex/quickstart.md` §1–3; **enable `gateway.multiplex_profiles` before proving `/p/<slug>/v1/responses`** (the `/p/` mirror only exists with multiplexing on; legacy `/v1` stays pinned).
+2. Mount `~/.hermes/profiles` read-only into the sidecar and set `HERMES_PROFILES_DIR`, `HERMES_PROVISION_URL=http://172.21.0.1:3000/api/profiles/ensure`, `HERMES_PROVISION_TOKEN` (same value as `PROFILES_PROVISION_TOKEN` in the Chat UI env).
+3. Profiles own their `API_SERVER_KEY`; the registry holds no keys. Chat history is per identity; export pre-cutover rows before the cutover.
+
 ## Step 9 — PPT-Master deck generation (optional, spec 009)
 
 Lets users type "help to generate a powerpoint, introduce Dify software" in the chat and receive a native editable `.pptx` download link. Requires the ppt-master clone (Step 0 of its own README: `git clone https://github.com/hugohe3/ppt-master.git` into the repo root, `python3 -m venv ppt-master/.venv`, install its requirements) plus the sidecar rebuilt with the ppt mount (Step 3 above includes `-v .../ppt-master:/opt/ppt-master`; the image bakes the export-path deps).
