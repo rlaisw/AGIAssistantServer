@@ -6744,10 +6744,10 @@
     "semantic_hash": "f18f304554d8c85b2e34599d12e7d644"
   },
   "ai-chat-landing/components/auth-control.test.ts": {
-    "mtime": 1795687230.5782106,
-    "seen": 1795694608.6203282,
-    "ast_hash": "022883bcc578b6842c7c4b29a089ad28",
-    "semantic_hash": "022883bcc578b6842c7c4b29a089ad28"
+    "mtime": 1795695750.7071762,
+    "seen": 1795704546.2045312,
+    "ast_hash": "17b59f78df36ce5cc430eca2e3b1f58a",
+    "semantic_hash": "17b59f78df36ce5cc430eca2e3b1f58a"
   },
   "ai-chat-landing/components/auth-control.tsx": {
     "mtime": 1795586652.7362206,
@@ -6756,10 +6756,10 @@
     "semantic_hash": "c57d114987332464e969cb57e1b0d098"
   },
   "ai-chat-landing/components/auth-error-banner.tsx": {
-    "mtime": 1795584879.6657476,
-    "seen": 1795694608.620332,
-    "ast_hash": "51af2f75caa693f2245df56812068b58",
-    "semantic_hash": "51af2f75caa693f2245df56812068b58"
+    "mtime": 1795695742.843168,
+    "seen": 1795704546.2045393,
+    "ast_hash": "b3bc17b3591a96973b9dae4c7463f96b",
+    "semantic_hash": "b3bc17b3591a96973b9dae4c7463f96b"
   },
   "ai-chat-landing/lib/auth/claims.test.ts": {
     "mtime": 1795584608.0986106,
@@ -7032,16 +7032,16 @@
     "semantic_hash": "23a849da728c6580991c41abc430764a"
   },
   "ai-chat-landing/scripts/entra-auth-check.mjs": {
-    "mtime": 1795687312.2622507,
-    "seen": 1795694608.6205292,
-    "ast_hash": "0fdff1dc4f87f977e4ca3b81e523c5b8",
-    "semantic_hash": "0fdff1dc4f87f977e4ca3b81e523c5b8"
+    "mtime": 1795695265.1864822,
+    "seen": 1795704546.2047627,
+    "ast_hash": "6ab5d576871dca894174ed6f9e6174f2",
+    "semantic_hash": "6ab5d576871dca894174ed6f9e6174f2"
   },
   "ai-chat-landing/scripts/entra-flow-check.mjs": {
-    "mtime": 1795584739.089835,
-    "seen": 1795694608.6205304,
-    "ast_hash": "618b73ef94e4f85b07578a85c817aaa2",
-    "semantic_hash": "618b73ef94e4f85b07578a85c817aaa2"
+    "mtime": 1795696099.5194068,
+    "seen": 1795704546.2047646,
+    "ast_hash": "b4e2ea4116718ab6d844f8b3220fb026",
+    "semantic_hash": "b4e2ea4116718ab6d844f8b3220fb026"
   },
   "ai-chat-landing/scripts/hermes-profile-check.mjs": {
     "mtime": 1795662097.2241898,
@@ -7170,10 +7170,10 @@
     "semantic_hash": "aab49fb4edd455357e94a7646aafc500"
   },
   "specs/050-azure-entra-oauth/quickstart.md": {
-    "mtime": 1795584129.3288102,
-    "seen": 1795694608.6223671,
-    "ast_hash": "ff66ab701caac2a31f6b0c445b381940",
-    "semantic_hash": "ff66ab701caac2a31f6b0c445b381940"
+    "mtime": 1795703901.2995389,
+    "seen": 1795704546.2077074,
+    "ast_hash": "a71a7323d3231a2509882175e74c9b80",
+    "semantic_hash": "a71a7323d3231a2509882175e74c9b80"
   },
   "specs/050-azure-entra-oauth/research.md": {
     "mtime": 1795586290.298363,
@@ -7188,16 +7188,16 @@
     "semantic_hash": "44a2cc29ca6be040763d980fa6c484d9"
   },
   "specs/050-azure-entra-oauth/tasks.md": {
-    "mtime": 1795596788.6116312,
-    "seen": 1795694608.6223705,
-    "ast_hash": "3499309d394730a2fdf2c72f5caad349",
-    "semantic_hash": "3499309d394730a2fdf2c72f5caad349"
+    "mtime": 1795703949.6284323,
+    "seen": 1795704546.2077134,
+    "ast_hash": "91cc281450018b0f9907e7d1fa5be4e0",
+    "semantic_hash": "91cc281450018b0f9907e7d1fa5be4e0"
   },
   "specs/050-azure-entra-oauth/test-plan.md": {
-    "mtime": 1795596788.61023,
-    "seen": 1795694608.6223717,
-    "ast_hash": "3fd232dd5500a7eef172f58a87ed9cfa",
-    "semantic_hash": "3fd232dd5500a7eef172f58a87ed9cfa"
+    "mtime": 1795703943.475561,
+    "seen": 1795704546.207715,
+    "ast_hash": "b55022dd28e1e7c115f263555cf00635",
+    "semantic_hash": "b55022dd28e1e7c115f263555cf00635"
   },
   "specs/051-hermes-multiplex/checklists/requirements.md": {
     "mtime": 1795598070.4149036,
@@ -7264,5 +7264,11 @@
     "seen": 1795694608.6223834,
     "ast_hash": "a52af429eb4a0977241fb3712e503b32",
     "semantic_hash": "a52af429eb4a0977241fb3712e503b32"
+  },
+  "ai-chat-landing/components/auth-error-banner.test.ts": {
+    "mtime": 1795695747.083172,
+    "seen": 1795704546.2045372,
+    "ast_hash": "e95f4801dbf2ac7d0a01be27e4e721f7",
+    "semantic_hash": "e95f4801dbf2ac7d0a01be27e4e721f7"
   }
 }

@@ -81,9 +81,9 @@ All application work happens in `ai-chat-landing/` (Next.js 16 App Router). Vite
 **Independent test**: E8 against a clean tenant.
 
 - [X] T023 [US3] Create `ai-chat-landing/scripts/entra-flow-check.mjs`: loopback listener on `http://localhost:53682/callback`, authorization-code + S256 flow (no client secret), prints steps 1–9 PASS/FAIL and claim *presence* (`oid`, `email`/`preferred_username`, `tid`, `nonce`) plus lifetimes; unit-test its report formatter against `tests/support/fake-idp.ts` in `ai-chat-landing/lib/auth/flow-report.test.ts` (no token values in output)
-- [ ] T024 [US3] Execute `specs/050-azure-entra-oauth/quickstart.md` §§1–5 on a clean test tenant (portal or `az`), capture the exact commands and results, and correct any drift between the runbook and the real Azure UI/CLI in `quickstart.md`
-- [ ] T025 [US3] Perform the secret-rotation drill from `quickstart.md` §7 (create new secret → update env → verify sign-in → remove old) and record timings plus the zero-downtime result in `test-plan.md` under "Not covered live" (now covered)
-- [ ] T026 [US3] Run E8 owner-present (`node ai-chat-landing/scripts/entra-flow-check.mjs`), confirm 9/9 PASS in < 15 minutes, and record the output summary in `test-plan.md`
+- [X] T024 [US3] Execute `specs/050-azure-entra-oauth/quickstart.md` §§1–5 on a clean test tenant (portal or `az`), capture the exact commands and results, and correct any drift between the runbook and the real Azure UI/CLI in `quickstart.md`
+- [X] T025 [US3] Perform the secret-rotation drill from `quickstart.md` §7 (create new secret → update env → verify sign-in → remove old) and record timings plus the zero-downtime result in `test-plan.md` under "Not covered live" (now covered)
+- [X] T026 [US3] Run E8 owner-present (`node ai-chat-landing/scripts/entra-flow-check.mjs`), confirm 9/9 PASS in < 15 minutes, and record the output summary in `test-plan.md`
 
 **Checkpoint**: an operator with no prior context can provision and prove the setup from the docs alone.
 

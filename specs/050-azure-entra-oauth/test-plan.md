@@ -91,7 +91,7 @@ Requires a test tenant, the two accounts, and `RUN_ENTRA_E2E=1`. The script driv
 | E8 | Operator harness | `entra-flow-check.mjs` prints 9/9 PASS with `oid`, `email`, `tid`, `nonce` present and no token values |
 | E9 | Token renewal | after the access token's lifetime, a request succeeds without a prompt and one renewal log line appears (may be deferred to a 1-hour observation; integration I-tests already prove the logic) |
 
-Not covered live (documented): 8 h idle / 12 h absolute waits (unit-proven with the injected clock), real MFA/Conditional Access re-challenge (tenant-dependent; manual note in quickstart), secret rotation (operator runbook step, verified by one sign-in after rotation).
+Not covered live (documented): 8 h idle / 12 h absolute waits (unit-proven with the injected clock), real MFA/Conditional Access re-challenge (tenant-dependent; manual note in quickstart).
 
 ## Error handling matrix
 
@@ -164,6 +164,26 @@ against `https://agia.tvb.com.hk` via the nginx origin (headful Chrome 155, `--r
 - **Bug found and fixed (banner was StrictMode-fragile):** in dev (StrictMode double-mount) the banner's second effect run read the already-stripped URL, got `null`, and erased the message it had just set — the banner never appeared on `/?auth_error=…`. Fixed in `components/auth-error-banner.tsx` (set the message only when non-null); regression test `components/auth-error-banner.test.ts` renders under `React.StrictMode` and asserts the message survives and the param strips (jsdom; first component-tier test, `vitest.config.ts` include extended).
 - SC-001 timing context: cold manual password+MFA login in a fresh profile measured **89.9 s** (includes typing); warm SSO re-entry **0.8–1.0 s**. The ≤30 s/≤3-interaction criterion is the org-SSO scenario (met: 0.8 s, 1 interaction) — recorded honestly, not assumed.
 - Flaky-check note: `E1 header shows the display name` was racy on fast SSO (the session API can report authenticated before the post-redirect page re-renders); the script now retries up to 15 s. Two earlier runs (narrow window ≤640 px + leaked session) diagnosed and were superseded by the final clean run above.
+
+**2026-11-26 — T024 quickstart §§1–2 + §7 (az CLI, existing tenant, fresh test registration)**
+
+Conscious deviation from the "clean test tenant" wording (owner declined a new tenant): everything was provisioned instead in the existing tenant `ca1293ac-…` under a **fresh app registration** `AGI Chat — Hermes SSO TEST` (client `839129cd-b82f-47fc-8af4-23e88e60d6e5`), so every §1–§2 step still ran against empty, newly-created configuration. Operator login via `az login --use-device-code`; all provisioning by `az` per §2.
+- §2 executed end to end: app create (single-tenant), web redirects (localhost + both hosts), loopback public-client redirect, ID-token optional claims via one `--set` line, Graph delegated permissions, 6-month secret. Verified by `az ad app show` (all fields present) and by E8 below.
+- Drift found and fixed in `quickstart.md`: (1) `az ad app credential reset` fails "Resource … does not exist" until **`az ad sp create --id "$APP_ID"`** runs — §2/§7 lacked it; (2) optional claims do NOT need the manifest/portal — the `--set optionalClaims=…` one-liner works and is now documented; (3) tenant-wide admin consent (`az ad app permission grant`) needs Global-Admin privileges — for these identity-only delegated scopes, per-user consent at first sign-in suffices (E8 proved it 9/9 with no admin grant); (4) §7's zero-downtime premise was wrong — see T025.
+- §3–§5: §3/§4 are the standing offline gates (green) plus the live server's production env; §5 path 1 green (offline suite), path 2 = E8 below against the fresh test registration, paths 3/4 recorded against the production registration (identical route code) on 2026-11-25/26.
+
+**2026-11-26 — T026 E8, the 9-step harness (owner present)**
+
+- The harness was first extended to the FR-016 nine steps — discovery / PKCE build / code+state / public-client exchange / JWKS signature / issuer / audience / nonce / claims are each verified and reported individually (`scripts/entra-flow-check.mjs`; formatter test unchanged and green).
+- Run against the fresh test registration with one operator sign-in: **9/9 PASS**, claims `oid/email/tid/nonce` all present, id-token lifetime 3900 s, access 4004 s, refresh token present, no token values printed. Operator time ≈ 2 minutes (SC-006: < 15 min). One earlier attempt timed out at the 180 s sign-in window (operator not ready); the retry passed.
+
+**2026-11-26 — T025 secret-rotation drill (§7, production app `dca69bcd-…`)**
+
+- 14:36:54Z drill start; old credential `hermes-sso-2026-11-rotated` (exp 2027-05-26) listed; `.env.local` backed up (mode 600).
+- ~14:37:10Z new credential `hermes-sso-2026-11-26-drill` created via `az ad app credential reset` — which **immediately deleted the old key** (no overlap window; ~30 s in which a *new* sign-in would have failed at token exchange; existing sessions and anonymous chat unaffected, sole user present).
+- 14:37:40Z `.env.local` updated with the new secret (written `az`→file→`.env.local`, never displayed in chat); 14:38 `signin` 302 healthy; full sign-in round trip (CDP, warm SSO 1.1 s) **all checks passed** — proof the server runs on the new secret alone, since the old key no longer existed at Microsoft by then.
+- Result recorded honestly: the drill completed with **no downtime observed**, but the documented overlap-based zero-downtime path is not what `credential reset` does. `quickstart.md` §7 now uses Graph `addPassword` (add → swap → verify → delete old) — the true no-gap sequence — and documents `credential reset` as the replace-semantics trap.
+- End state: single active credential `hermes-sso-2026-11-26-drill` (exp 2027-05-26), `.env.local` in sync (mode 600), backup retained.
 
 ## Definition of Done for this feature
 

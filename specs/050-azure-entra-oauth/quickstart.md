@@ -31,24 +31,32 @@ APP_ID=$(az ad app create --display-name "AGI Chat — Hermes SSO" \
   --sign-in-audience AzureADMyOrg --query appId -o tsv)
 OBJECT_ID=$(az ad app show --id "$APP_ID" --query id -o tsv)
 
+# the app needs a service principal before credential/consent operations
+# (az ad app credential reset fails with "Resource ... does not exist" without it)
+az ad sp create --id "$APP_ID"
+
 # web redirect URIs (dev + prod) and the loopback harness URI (public client)
 az ad app update --id "$APP_ID" --web-redirect-uris \
   "http://localhost:3000/api/auth/callback/entra" "https://<chat-host>/api/auth/callback/entra"
 az ad app update --id "$APP_ID" --public-client-redirect-uris "http://localhost:53682/callback"
 
-# delegated identity scopes only (no Graph data scopes)
+# delegated identity scopes only (no Graph data scopes). Tenant-wide admin
+# consent (az ad app permission grant) needs Global-Admin privileges; for these
+# identity-only delegated scopes, per-user consent at first sign-in suffices
+# (verified live 2026-11-26: the E8 harness runs 9/9 without an admin grant).
 az ad app permission add --id "$APP_ID" --api 00000003-0000-0000-c000-000000000000 \
   --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope \
                     37f7f235-527c-4136-accd-4a02d197296e=Scope \
                     64a6cdd6-aab1-4aaf-94b8-3cc8405e90d0=Scope \
                     7427e0e9-2fba-42fe-b0c0-848c9e6a8182=Scope
 
-# secret with a 6-month window; capture once, never commit
+# ID-token optional claims in one CLI line (no manifest edit needed; verified live 2026-11-26)
+az ad app update --id "$APP_ID" --set optionalClaims='{"idToken": [{"essential": false, "name": "email"}, {"essential": false, "name": "preferred_username"}, {"essential": false, "name": "sid"}]}'
+
+# secret with a 6-month window; capture once, never commit (needs the service principal above)
 SECRET=$(az ad app credential reset --id "$APP_ID" --display-name "hermes-sso" \
   --years 0 --end-date "$(date -u -d '+6 months' +%Y-%m-%d)" --query password -o tsv)
 ```
-
-Optional claims are configured in the manifest (`optionalClaims.idToken` = `email`, `preferred_username`, `sid`); the portal path is simpler for that one setting.
 
 ## 3. Configure the app
 
@@ -101,8 +109,21 @@ The harness (path 2) uses the loopback public client and therefore needs no secr
 ## 7. Rotate the secret (no downtime)
 
 ```bash
-az ad app credential reset --id "$APP_ID" --display-name "hermes-sso-next" \
-  --years 0 --end-date "$(date -u -d '+6 months' +%Y-%m-%d)" --query password -o tsv
+# list credentials to find the old key id and its expiry
+az ad app credential list --id "$APP_ID" --query "[].{keyId: keyId, name: displayName, expires: endDateTime}" -o table
+
+# ADD the new secret via Graph addPassword — both secrets stay valid during the
+# overlap window (true zero downtime). Do NOT use `az ad app credential reset`
+# here: despite the drill's §7 assumption, reset REPLACES the credential set
+# (verified live 2026-11-26: the old key vanished the moment reset returned,
+# leaving ~30 s where new sign-ins would fail at token exchange).
+OBJECT_ID=$(az ad app show --id "$APP_ID" --query id -o tsv)
+NEW_SECRET=$(az rest --method POST \
+  --url "https://graph.microsoft.com/v1.0/applications/$OBJECT_ID/addPassword" \
+  --headers "Content-Type=application/json" \
+  --body '{"passwordCredential": {"displayName": "hermes-sso-next", "endDateTime": "'"$(date -u -d '+6 months' +%Y-%m-%dT%H:%M:%SZ)"'"}}' \
+  --query "secretText" -o tsv)
+
 # update ENTRA_CLIENT_SECRET, redeploy, verify sign-in, then remove the old credential
 az ad app credential delete --id "$APP_ID" --key-id <old-key-id>
 ```

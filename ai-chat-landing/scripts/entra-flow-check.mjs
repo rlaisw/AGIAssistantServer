@@ -146,17 +146,32 @@ async function main() {
   let payload
   try {
     const jwks = createRemoteJWKSet(new URL(discovery.jwks_uri))
-    const verified = await jwtVerify(tokens.id_token, jwks, {
-      issuer,
-      audience: clientId,
-      clockTolerance: "5m",
-    })
+    // Signature + expiry only here — issuer/audience/nonce get their own
+    // steps so a failed run names WHICH check broke (FR-016 nine steps).
+    const verified = await jwtVerify(tokens.id_token, jwks, { clockTolerance: "5m" })
     payload = verified.payload
-    steps.push({ name: "identity token verified (signature, issuer, audience, expiry)", ok: true })
+    steps.push({ name: "ID token signature valid (JWKS)", ok: true })
   } catch (error) {
-    steps.push({ name: "identity token verification", ok: false, detail: error.message })
+    steps.push({ name: "ID token signature valid (JWKS)", ok: false, detail: error.message })
     return report(false)
   }
+
+  const issuerOk = payload.iss === issuer
+  steps.push({ name: "issuer matches the tenant", ok: issuerOk, detail: issuerOk ? undefined : String(payload.iss) })
+  if (!issuerOk) return report(false)
+
+  const audience = Array.isArray(payload.aud) ? payload.aud : [payload.aud]
+  const audienceOk = audience.includes(clientId)
+  steps.push({
+    name: "audience matches the client",
+    ok: audienceOk,
+    detail: audienceOk ? undefined : String(payload.aud),
+  })
+  if (!audienceOk) return report(false)
+
+  const nonceOk = payload.nonce === nonce
+  steps.push({ name: "nonce matches the request", ok: nonceOk })
+  if (!nonceOk) return report(false)
 
   claims = {
     oid: typeof payload.oid === "string" && payload.oid.length > 0,
@@ -164,7 +179,7 @@ async function main() {
       (typeof payload.email === "string" && payload.email.length > 0) ||
       (typeof payload.preferred_username === "string" && payload.preferred_username.length > 0),
     tid: payload.tid === tenantId,
-    nonce: typeof payload.nonce === "string" && payload.nonce === nonce,
+    nonce: nonceOk,
   }
   steps.push({ name: "required claims present", ok: Object.values(claims).every(Boolean) })
 
