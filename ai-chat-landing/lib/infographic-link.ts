@@ -17,11 +17,18 @@ export function infographicDisplayLabel(text: string): string {
 }
 
 // spec 052 U1/U2: the URL form for a request — profiled when a slug is known.
+// bug wrong-infographics-url: the model may fabricate a host (e.g.
+// https://infographics.local/...) when wrapping the tool's relative URL in a
+// markdown link — always rebuild infographic hrefs from the /infographics/
+// path so the link is same-origin no matter what host the text carried.
 export function infographicHref(href: string | undefined, slug: string | null): string {
-  const sameOrigin = rewriteLegacyInfographicUrl(href ?? "")
-  if (!slug) return sameOrigin
-  const id = infographicId(sameOrigin)
-  return id ? `/infographics/p/${slug}/${id}/` : sameOrigin
+  const target = href ?? ""
+  const m = target.match(/\/infographics\/(?:p\/([a-z0-9-]+)\/)?([0-9a-f]{10,})([^?#]*)/)
+  if (!m) return rewriteLegacyInfographicUrl(target)
+  const owner = slug ?? m[1] ?? null
+  const suffix = m[3] ?? ""
+  const id = m[2]
+  return owner ? `/infographics/p/${owner}/${id}${suffix}` : `/infographics/${id}${suffix}`
 }
 
 // spec 052 U3: old answers embed loopback URLs — rewrite to same-origin.

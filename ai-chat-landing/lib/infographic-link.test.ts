@@ -25,3 +25,24 @@ describe("infographic link helpers (spec 052)", () => {
     expect(infographicId("/infographics/4cafe75efa03/")).toBe("4cafe75efa03")
   })
 })
+
+// bug wrong-infographics-url: the model fabricated a host wrapping the
+// tool's relative URL; every infographic href must be rebuilt same-origin
+describe("fabricated-host infographic links (bug wrong-infographics-url)", () => {
+  it("strips a fabricated host and keeps the profiled path", () => {
+    expect(infographicHref("https://infographics.local/infographics/p/raymond-lai-tvb-com-hk/0ef874ea67fc/", null))
+      .toBe("/infographics/p/raymond-lai-tvb-com-hk/0ef874ea67fc/")
+  })
+  it("fabricated host, plain form → same-origin plain path", () => {
+    expect(infographicHref("https://infographics.local/infographics/0ef874ea67fc/", null))
+      .toBe("/infographics/0ef874ea67fc/")
+  })
+  it("session slug wins over the URL's slug", () => {
+    expect(infographicHref("https://infographics.local/infographics/p/other-user/0ef874ea67fc/", "raymond-lai-tvb-com-hk"))
+      .toBe("/infographics/p/raymond-lai-tvb-com-hk/0ef874ea67fc/")
+  })
+  it("asset suffix preserved", () => {
+    expect(infographicHref("https://x.evil/infographics/0ef874ea67fc/img.js", null))
+      .toBe("/infographics/0ef874ea67fc/img.js")
+  })
+})
