@@ -570,3 +570,33 @@ def test_x1_read_task_never_stamps(tmp_path, monkeypatch):
                 "conversation_id": "c-x1d"})
     assert out["status"] == "ok"
     assert "REPLACED:" not in out["result"]
+
+
+def test_completed_turn_without_step_lines_still_audits(tmp_path, monkeypatch):
+    # spec 030: every step audited — email compose/confirm reports often carry
+    # no STEP lines; a COMPLETED marker with no audit entry left the turn
+    # invisible in the trail (gap found by the battery's A1 check 2026-11-26)
+    reply = ("DRAFT ID: 1a2b3c4d\nTASK: COMPLETED")
+    srv, cfg = _server(tmp_path, monkeypatch, agent_reply=reply)
+    out = call(srv, "hermes_office_task",
+               {"task": "write an email to peter@x.example saying hi",
+                "conversation_id": "c-audit"})
+    assert out["status"] == "ok"
+    entries = _audit(tmp_path)
+    executed = [e for e in entries if e["decision"] == "executed"]
+    assert executed, "completed no-STEP turn left no audit entry"
+    assert entries[-1]["operation"] == "office-task"
+
+
+def test_step_line_turns_do_not_double_audit(tmp_path, monkeypatch):
+    # STEP-line turns audit per step; the new catch-up path must not add a
+    # second entry on top of those
+    reply = ("STEP 1: create-workbook OK — done\n"
+             "TASK: COMPLETED")
+    srv, cfg = _server(tmp_path, monkeypatch, agent_reply=reply)
+    out = call(srv, "hermes_office_task",
+               {"task": "create a workbook and save it to C:\\OfficeMCP\\x.xlsx",
+                "conversation_id": "c-audit2"})
+    assert out["status"] == "ok"
+    entries = _audit(tmp_path)
+    assert len(entries) == 1 and entries[-1]["decision"] == "executed"

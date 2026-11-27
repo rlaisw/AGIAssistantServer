@@ -673,7 +673,7 @@ def scenario_hermes_office_task(dcfg: DeployConfig) -> tuple[bool, str]:
     checks.append(f"O7 audit cross-check {'ok' if audit_ok else 'FAILED'} ({audit_detail})")
 
     ok = (b1 and b1v and b2 and b2v and b6 and b3 and b4 and b5
-          and bw and bwv and bp and bpv and audit_ok
+          and bw and bwv and bp and bpv and audit_ok and a1
           and s1a and s1v and x1a and x1v)
     return ok, "hermes-office-task: " + "; ".join(checks)
 

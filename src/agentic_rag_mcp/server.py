@@ -1337,6 +1337,13 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                 _audit("error", reason=reason, timing=turn_timing or None)
                 return {"status": "error", "reason": reason, **envelope}
             if tm.group(1).upper() == "COMPLETED":
+                # spec 030 FR: every step audited as operation=office-task.
+                # Turns whose report carries no STEP lines (email
+                # compose/confirm/cancel) used to leave no audit trail — audit
+                # the executed outcome here so every successful turn is on it.
+                if not _RE_STEP.search(output):
+                    _audit("executed", outcome=output.strip()[:1000],
+                           timing=turn_timing or None)
                 result = f"{output}\n\n{tline}" if tline else output
                 if _target_pre_existing:
                     # office-x1 (spec 031): the deterministic, honest
