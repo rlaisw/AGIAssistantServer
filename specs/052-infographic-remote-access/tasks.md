@@ -10,7 +10,7 @@ description: "Task list: Infographic URLs reachable by remote clients"
 
 ## Phase 1: Setup
 
-- [X] T001 Add infographic URL builder + legacy-rewrite helpers in `ai-chat-landing/lib/infographic-link.ts` (extend existing module): profiled form `/infographics/p/<slug>/<id>/`, plain form `/infographics/<id>/`, and a rewrite for `http://localhost:28080/infographics/…` legacy URLs; unit tests in `lib/infographic-link.test.ts` for U1–U4
+- [X] T001 Add infographic URL builder + legacy-rewrite helpers in `ai-chat-landing/lib/infographic-link.ts` (extend existing module): profiled form `/infographics/p/<slug>/<id>/`, plain form `/infographics/<id>/`, and a rewrite for `http://localhost:28080/infographics/…` legacy URLs; unit tests in `lib/infographic-link.test.ts` for U1–U4 (cites data-model.md `ProfiledInfographicURL.slug` — grammar `[a-z0-9-]+`, must equal the session slug else 403)
 
 ## Phase 2: User Story 1 — Remote client opens an infographic link (P1) 🎯 MVP
 
@@ -19,7 +19,7 @@ description: "Task list: Infographic URLs reachable by remote clients"
 **Independent test**: E1 — generate an infographic and open its link from a non-host machine.
 
 - [X] T002 [US1] Change the `antv_infographic` tool result URL in `src/agentic_rag_mcp/` to emit a relative path (`/infographics/p/<slug>/<id>/` when the tool call carries `hermes_slug`, else `/infographics/<id>/`) with a contract test; no host literal (FR-002, FR-007/FR-008)
-- [X] T003 [US1] Create `ai-chat-landing/app/infographics/[[...path]]/route.ts` proxying GET to the sidecar `http://127.0.0.1:28080/infographics/…` with status/content-type passthrough and streaming (no listing, no traversal) per `contracts/proxy-route.md`
+- [X] T003 [US1] Create `ai-chat-landing/app/infographics/[[...path]]/route.ts` proxying GET to the sidecar `http://127.0.0.1:28080/infographics/…` with status/content-type passthrough and streaming (no listing, no traversal) per `contracts/proxy-route.md` (cites data-model.md `ProfiledInfographicURL.slug` — grammar `[a-z0-9-]+`, must equal the session slug else 403)
 - [X] T004 [US1] Route tests U5, U8, U9, H2, H3, H4 in `app/infographics/[[...path]]/route.test.ts` (plain passthrough, upstream-down honest 502, malformed slug/id, traversal rejection)
 
 **Checkpoint**: infographic links reachable same-origin (SC-001, SC-002).
@@ -45,7 +45,7 @@ description: "Task list: Infographic URLs reachable by remote clients"
 ## Phase 5: Polish
 
 - [X] T009 Update `specs/052-infographic-remote-access/test-plan.md` §5 with live results; AGENTS.md/README note if URL contract documented
-- [ ] T010 Full gates: `pnpm test/typecheck/lint`, Python suite; `deploy redeploy` for the sidecar URL change; graphify update; commit
+- [X] T010 Full gates: `pnpm test/typecheck/lint`, Python suite; `deploy redeploy` for the sidecar URL change; graphify update; commit
 
 ## Dependencies
 
