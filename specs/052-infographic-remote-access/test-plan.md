@@ -71,3 +71,9 @@
 - Sidecar: `antv_infographic` accepts `hermes_slug` (default ""); with slug → `/infographics/p/<slug>/<id>/`, without → `/infographics/<id>/` (verified live via MCP call: `ec04dc61d9db` profiled, `06df56fda267` plain).
 - Dify: `hermes_slug` bound on both `antv_infographic` tool nodes via the auto-bound variable selector (`auto: 0`, variable `['1776072202913','hermes_slug']`); chatflow republished to app `194e1edf` ("chatflow-publish: published").
 - Enforcement: anonymous request to `https://agia.tvb.com.hk/infographics/p/raymond-lai-tvb-com-hk/ec04dc61d9db/` → **403**; upstream serves the same id 200.
+
+**2026-11-27 — T012: owner-present E2E (user-attested)**
+
+- Owner clicked the answer's infographic link from the signed-in Chat UI: page opened, user confirms "test ok".
+- Upstream log corroborates the full chain: `GET /infographics/5c2e647cbb1b/ 200` (10:52:01 and 10:52:05) and `GET /infographics/fc6790555920/ 200` (10:54:39) — profiled requests passed the ownership check at the proxy and served through with the `p/<slug>/` prefix stripped.
+- SC-001 (owner-side open) and SC-005 (owner passes, others refused — refusal side recorded 2026-11-27 earlier) both covered. Spec 052 fully converged.

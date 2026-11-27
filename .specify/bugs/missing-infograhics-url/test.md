@@ -33,3 +33,7 @@ The fix is pinned by tests (forwarded upstream URL asserted free of the `p/<slug
 ## Recommendation
 
 Hold for one owner click — open `https://agia.tvb.com.hk/infographics/p/raymond-lai-tvb-com-hk/4cafe75efa03/` signed in; a 200 closes both this bug (to verified) and spec-052 T012. Everything else is verified.
+
+## Addendum 2026-11-27 10:55 — result upgraded: partial → verified
+
+Owner click-through exercised live: the signed-in user opened the profiled infographic link ("test ok"); upstream log shows the ownership gate passing and the stripped path serving 200 (`5c2e647cbb1b` ×2, `fc6790555920`). The one outstanding live path is now closed.
