@@ -279,3 +279,16 @@ def test_write_page_inline_oversize_rejected(tmp_path, monkeypatch):
     (ws / "svg_output").mkdir(parents=True)
     with pytest.raises(PptInvalidInput):
         bridge.write_page(cfg, "proj_1", 1, "chart", DECK_SVG)
+
+
+def test_create_infographic_url_is_relative_and_profiled(monkeypatch, tmp_path):
+    # spec 052 FR-002/FR-007/FR-008: no host literal; profiled when the caller's slug is known
+    from agentic_rag_mcp.config import Config
+    from agentic_rag_mcp.antv import infographic as ig
+    cfg = Config(state_db=tmp_path / "s.sqlite3", vector_dir=tmp_path / "v")
+    monkeypatch.setattr(ig, "served_dir", lambda c: tmp_path)
+    with_slug = ig.create_infographic(cfg, "title: x", slug="raymond-lai-tvb-com-hk")
+    assert with_slug["url"] == "/infographics/p/raymond-lai-tvb-com-hk/" + with_slug["id"] + "/"
+    assert "localhost" not in with_slug["url"]
+    plain = ig.create_infographic(cfg, "title: x")
+    assert plain["url"] == f"/infographics/{plain['id']}/"

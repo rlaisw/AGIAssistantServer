@@ -80,7 +80,7 @@ def validate_id(infographic_id: str) -> None:
         raise AntvInvalidInput(f"invalid infographic id: {infographic_id!r}")
 
 
-def create_infographic(cfg: Config, description: str) -> dict:
+def create_infographic(cfg: Config, description: str, slug: str = "") -> dict:
     if not description or not description.strip():
         raise AntvInvalidInput("description (the infographic syntax) must be non-empty")
     if len(description.encode("utf-8")) > cfg.antv_infographic_max_syntax_bytes:
@@ -89,10 +89,12 @@ def create_infographic(cfg: Config, description: str) -> dict:
         )
     infographic_id = uuid.uuid4().hex[:12]
     (served_dir(cfg) / f"{infographic_id}.txt").write_text(description, encoding="utf-8")
-    base = cfg.ppt_exports_url_base.rsplit("/exports", 1)[0].rstrip("/")
+    # spec 052 FR-002/FR-007/FR-008: relative URL, profiled when the caller's
+    # slug is known — no host literal is ever emitted.
+    namespace = f"p/{slug}/" if slug else ""
     return {
         "id": infographic_id,
-        "url": f"{base}/infographics/{infographic_id}/",
+        "url": f"/infographics/{namespace}{infographic_id}/",
         "usage": (
             "Give the user the url as a markdown link — it opens the rendered "
             "infographic in a browser."

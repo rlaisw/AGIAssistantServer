@@ -1404,10 +1404,10 @@
     "semantic_hash": "f9caf70a517c52072d8c858ce4be5713"
   },
   "ai-chat-landing/components/markdown.tsx": {
-    "mtime": 1795504224.997701,
-    "seen": 1795521593.3454216,
-    "ast_hash": "a07a19e84b956473279d8687ed6a4919",
-    "semantic_hash": "a07a19e84b956473279d8687ed6a4919"
+    "mtime": 1795767944.4297745,
+    "seen": 1795769824.868333,
+    "ast_hash": "5d04178acc135ed12f49b3b169d1dd3f",
+    "semantic_hash": "5d04178acc135ed12f49b3b169d1dd3f"
   },
   "ai-chat-landing/components/theme-provider.tsx": {
     "mtime": 1795504224.9986863,
@@ -1872,10 +1872,10 @@
     "semantic_hash": "eeb38975b06b956fd67348aef3893b60"
   },
   "ai-chat-landing/vitest.config.ts": {
-    "mtime": 1795687164.0741596,
-    "seen": 1795694608.6205773,
-    "ast_hash": "8ca68e0b8ade9903c06b5d60a9d2f3b1",
-    "semantic_hash": "8ca68e0b8ade9903c06b5d60a9d2f3b1"
+    "mtime": 1795767882.857851,
+    "seen": 1795769824.8686337,
+    "ast_hash": "f8f769def069ce4f6f4340280537c07e",
+    "semantic_hash": "f8f769def069ce4f6f4340280537c07e"
   },
   "src/agentic_rag_mcp/deploy/__init__.py": {
     "mtime": 1795504225.4106865,
@@ -2214,10 +2214,10 @@
     "semantic_hash": "f4958f683513ba32eeab2a0cbe97c8e5"
   },
   "src/agentic_rag_mcp/antv/infographic.py": {
-    "mtime": 1795504225.40281,
-    "seen": 1795521593.3456597,
-    "ast_hash": "8946d1a6a7e1ca527204569b72204738",
-    "semantic_hash": "8946d1a6a7e1ca527204569b72204738"
+    "mtime": 1795767832.5738301,
+    "seen": 1795769824.8686898,
+    "ast_hash": "092e70b33205b61063d1ee0a2a6dfd33",
+    "semantic_hash": "092e70b33205b61063d1ee0a2a6dfd33"
   },
   "tests/contract/test_antv_contract.py": {
     "mtime": 1795504225.4774847,
@@ -2238,10 +2238,10 @@
     "semantic_hash": "1fb57f913d7a1c1184fddc236b2b7cf0"
   },
   "tests/unit/test_antv_tools.py": {
-    "mtime": 1795504225.4986866,
-    "seen": 1795521593.3458729,
-    "ast_hash": "76e16c8d47ba0aa20a01fb1382e9cd64",
-    "semantic_hash": "76e16c8d47ba0aa20a01fb1382e9cd64"
+    "mtime": 1795768015.8539257,
+    "seen": 1795769824.8689435,
+    "ast_hash": "34c5eec99f46234b9d04d918bd872cb9",
+    "semantic_hash": "34c5eec99f46234b9d04d918bd872cb9"
   },
   "specs/012-antv-visualization-tools/checklists/requirements.md": {
     "mtime": 1795504225.1330042,
@@ -5940,16 +5940,16 @@
     "semantic_hash": "4c8f047526857a258fd42e2cbc1eeced"
   },
   "ai-chat-landing/lib/infographic-link.test.ts": {
-    "mtime": 1795504225.0146863,
-    "seen": 1795521593.3454862,
-    "ast_hash": "9e5f600cda3ac9d5bc08764487962d6b",
-    "semantic_hash": "9e5f600cda3ac9d5bc08764487962d6b"
+    "mtime": 1795767852.6253119,
+    "seen": 1795769824.8684661,
+    "ast_hash": "ce2b9b4807346e7d99bbd98cee5a08c0",
+    "semantic_hash": "ce2b9b4807346e7d99bbd98cee5a08c0"
   },
   "ai-chat-landing/lib/infographic-link.ts": {
-    "mtime": 1795504225.0146863,
-    "seen": 1795521593.345488,
-    "ast_hash": "8157ff8b2fd19120a71392114cfdbf9f",
-    "semantic_hash": "8157ff8b2fd19120a71392114cfdbf9f"
+    "mtime": 1795767993.8332257,
+    "seen": 1795769824.8684683,
+    "ast_hash": "3974ec024bd769b90938343b230157a1",
+    "semantic_hash": "3974ec024bd769b90938343b230157a1"
   },
   "ai-chat-landing/scripts/infographic-link-check.mjs": {
     "mtime": 1795504225.0346863,
@@ -7270,5 +7270,71 @@
     "seen": 1795704546.2045372,
     "ast_hash": "e95f4801dbf2ac7d0a01be27e4e721f7",
     "semantic_hash": "e95f4801dbf2ac7d0a01be27e4e721f7"
+  },
+  "ai-chat-landing/app/infographics/[[...path]]/route.test.ts": {
+    "mtime": 1795767916.997881,
+    "seen": 1795769824.8682132,
+    "ast_hash": "3d7f88ad6e7870e11d063b969af7d82d",
+    "semantic_hash": "3d7f88ad6e7870e11d063b969af7d82d"
+  },
+  "ai-chat-landing/app/infographics/[[...path]]/route.ts": {
+    "mtime": 1795769439.4751632,
+    "seen": 1795769824.8682158,
+    "ast_hash": "30ef7c2a9f6fe381f5fc103e180322b0",
+    "semantic_hash": "30ef7c2a9f6fe381f5fc103e180322b0"
+  },
+  "specs/052-infographic-remote-access/checklists/requirements.md": {
+    "mtime": 1795766412.0208416,
+    "seen": 1795769824.8711028,
+    "ast_hash": "182cc539ea5a58848d17d3e5d9c5c114",
+    "semantic_hash": "182cc539ea5a58848d17d3e5d9c5c114"
+  },
+  "specs/052-infographic-remote-access/contracts/proxy-route.md": {
+    "mtime": 1795767730.3008971,
+    "seen": 1795769824.8711052,
+    "ast_hash": "eeedb77b7810d4414cd48d7e3baa3c1f",
+    "semantic_hash": "eeedb77b7810d4414cd48d7e3baa3c1f"
+  },
+  "specs/052-infographic-remote-access/data-model.md": {
+    "mtime": 1795767717.681759,
+    "seen": 1795769824.8711069,
+    "ast_hash": "78ce31a93988bd6c25f40c8158e6c632",
+    "semantic_hash": "78ce31a93988bd6c25f40c8158e6c632"
+  },
+  "specs/052-infographic-remote-access/plan.md": {
+    "mtime": 1795767730.2857695,
+    "seen": 1795769824.8711088,
+    "ast_hash": "692f61b87f54995ce931664b77b5843e",
+    "semantic_hash": "692f61b87f54995ce931664b77b5843e"
+  },
+  "specs/052-infographic-remote-access/quickstart.md": {
+    "mtime": 1795767730.2966406,
+    "seen": 1795769824.8711104,
+    "ast_hash": "e8c6c949d10a10eaf5e7b8896c5d07d6",
+    "semantic_hash": "e8c6c949d10a10eaf5e7b8896c5d07d6"
+  },
+  "specs/052-infographic-remote-access/research.md": {
+    "mtime": 1795767710.1857533,
+    "seen": 1795769824.8711116,
+    "ast_hash": "6bac2eb0a6f99ea2e1f3ba2757eb432d",
+    "semantic_hash": "6bac2eb0a6f99ea2e1f3ba2757eb432d"
+  },
+  "specs/052-infographic-remote-access/spec.md": {
+    "mtime": 1795767478.589604,
+    "seen": 1795769824.8711133,
+    "ast_hash": "ad25213440fb56193bde699fc2dfcaef",
+    "semantic_hash": "ad25213440fb56193bde699fc2dfcaef"
+  },
+  "specs/052-infographic-remote-access/tasks.md": {
+    "mtime": 1795769470.681071,
+    "seen": 1795769824.871115,
+    "ast_hash": "07b4ebc2ad2170907dcc31e44f1ebfb0",
+    "semantic_hash": "07b4ebc2ad2170907dcc31e44f1ebfb0"
+  },
+  "specs/052-infographic-remote-access/test-plan.md": {
+    "mtime": 1795769467.9112995,
+    "seen": 1795769824.8711169,
+    "ast_hash": "cb5924d19980b51a59aad592ed6600fb",
+    "semantic_hash": "cb5924d19980b51a59aad592ed6600fb"
   }
 }

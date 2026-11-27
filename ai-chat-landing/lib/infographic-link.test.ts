@@ -1,39 +1,27 @@
+// Spec 052 U1–U4: URL builders and legacy rewrite
 import { describe, expect, it } from "vitest"
+import { infographicHref, rewriteLegacyInfographicUrl, infographicId, validProfileSlug, isInfographicLink } from "./infographic-link"
 
-import { infographicDisplayLabel, isInfographicLink } from "@/lib/infographic-link"
-
-describe("isInfographicLink (spec 046)", () => {
-  it("accepts absolute sidecar infographic URLs", () => {
-    expect(isInfographicLink("http://localhost:28080/infographics/e468aaee5ee3/")).toBe(true)
+describe("infographic link helpers (spec 052)", () => {
+  it("U1: profiled form carries the slug", () => {
+    expect(infographicHref("http://localhost:28080/infographics/4cafe75efa03/", "raymond-lai-tvb-com-hk"))
+      .toBe("/infographics/p/raymond-lai-tvb-com-hk/4cafe75efa03/")
   })
-
-  it("accepts relative infographic URLs and query strings", () => {
-    expect(isInfographicLink("/infographics/abc123/")).toBe(true)
-    expect(isInfographicLink("http://localhost:28080/infographics/abc123/?x=1")).toBe(true)
+  it("U2: no slug → plain form", () => {
+    expect(infographicHref("/infographics/4cafe75efa03/", null)).toBe("/infographics/4cafe75efa03/")
   })
-
-  it("rejects deck download and page links", () => {
-    expect(isInfographicLink("http://localhost:28080/exports/deck.pptx")).toBe(false)
-    expect(isInfographicLink("http://localhost:28080/decks/demo/demo_1/")).toBe(false)
+  it("U3: legacy loopback rewritten to same-origin", () => {
+    expect(rewriteLegacyInfographicUrl("http://localhost:28080/infographics/4cafe75efa03/"))
+      .toBe("/infographics/4cafe75efa03/")
   })
-
-  it("rejects external, empty, and undefined hrefs", () => {
-    expect(isInfographicLink("https://support.apple.com/en-us/HT204204")).toBe(false)
-    expect(isInfographicLink("")).toBe(false)
-    expect(isInfographicLink(undefined)).toBe(false)
+  it("U4: non-infographic URL untouched", () => {
+    expect(rewriteLegacyInfographicUrl("https://docs.example/x")).toBe("https://docs.example/x")
+    expect(isInfographicLink("https://docs.example/x")).toBe(false)
   })
-})
-
-describe("infographicDisplayLabel (spec 046, E3)", () => {
-  it("passes the existing label through unchanged", () => {
-    expect(infographicDisplayLabel("Open the step-by-step infographic")).toBe("Open the step-by-step infographic")
-  })
-
-  it("strips exactly one model-emitted leading pin and whitespace", () => {
-    expect(infographicDisplayLabel(" 📌 Open the step-by-step infographic")).toBe("Open the step-by-step infographic")
-  })
-
-  it("leaves a pin in the middle of the label untouched", () => {
-    expect(infographicDisplayLabel("Open the 📌 infographic")).toBe("Open the 📌 infographic")
+  it("slug grammar and id extraction", () => {
+    expect(validProfileSlug("raymond-lai-tvb-com-hk")).toBe(true)
+    expect(validProfileSlug("Bad_Slug")).toBe(false)
+    expect(infographicId("/infographics/p/x/4cafe75efa03/")).toBe("4cafe75efa03")
+    expect(infographicId("/infographics/4cafe75efa03/")).toBe("4cafe75efa03")
   })
 })

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { parseDeckLink } from "@/lib/deck-url"
-import { infographicDisplayLabel, isInfographicLink } from "@/lib/infographic-link"
+import { infographicDisplayLabel, infographicHref, isInfographicLink } from "@/lib/infographic-link"
 
 export function Markdown({
   children,
@@ -59,7 +59,7 @@ export function Markdown({
               const label = typeof children === "string" ? infographicDisplayLabel(children) : children
               return (
                 <a
-                  href={href}
+                  href={infographicHref(href, null)}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-infographic-link
