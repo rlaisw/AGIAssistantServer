@@ -216,10 +216,10 @@
     "semantic_hash": "366689124ca42b54b992cf8129db2ca6"
   },
   "src/agentic_rag_mcp/config.py": {
-    "mtime": 1795504225.4106865,
-    "seen": 1795521593.3456686,
-    "ast_hash": "535d488c1779e7348d74328a8e7c240a",
-    "semantic_hash": "535d488c1779e7348d74328a8e7c240a"
+    "mtime": 1795775226.9109073,
+    "seen": 1795777299.7420366,
+    "ast_hash": "d60d7bc38c80430be325f7755d132612",
+    "semantic_hash": "d60d7bc38c80430be325f7755d132612"
   },
   "src/agentic_rag_mcp/errors.py": {
     "mtime": 1795504225.4186864,
@@ -348,10 +348,10 @@
     "semantic_hash": "0351c98ec054f4bff086a5df3dcf735d"
   },
   "src/agentic_rag_mcp/server.py": {
-    "mtime": 1795736366.3312216,
-    "seen": 1795740057.1738496,
-    "ast_hash": "d92f95040937f1894c49ba56990e8d8e",
-    "semantic_hash": "d92f95040937f1894c49ba56990e8d8e"
+    "mtime": 1795772046.3160372,
+    "seen": 1795777299.742261,
+    "ast_hash": "4b53fd92b1ffe3b22ae861eaafdb08ad",
+    "semantic_hash": "4b53fd92b1ffe3b22ae861eaafdb08ad"
   },
   "src/agentic_rag_mcp/sources/__init__.py": {
     "mtime": 1795504225.4586866,
@@ -1908,10 +1908,10 @@
     "semantic_hash": "49ce9e4b0261bab921009302e407c4d7"
   },
   "src/agentic_rag_mcp/deploy/docker_ops.py": {
-    "mtime": 1795599443.9749138,
-    "seen": 1795694608.620648,
-    "ast_hash": "8fbc001d759e6dc872f3867762052a72",
-    "semantic_hash": "8fbc001d759e6dc872f3867762052a72"
+    "mtime": 1795775290.1420045,
+    "seen": 1795777299.742061,
+    "ast_hash": "44da2306803a16b124c811a028989202",
+    "semantic_hash": "44da2306803a16b124c811a028989202"
   },
   "src/agentic_rag_mcp/deploy/report.py": {
     "mtime": 1795504225.4146864,
@@ -2214,10 +2214,10 @@
     "semantic_hash": "f4958f683513ba32eeab2a0cbe97c8e5"
   },
   "src/agentic_rag_mcp/antv/infographic.py": {
-    "mtime": 1795767832.5738301,
-    "seen": 1795769824.8686898,
-    "ast_hash": "092e70b33205b61063d1ee0a2a6dfd33",
-    "semantic_hash": "092e70b33205b61063d1ee0a2a6dfd33"
+    "mtime": 1795775257.006391,
+    "seen": 1795777299.7418814,
+    "ast_hash": "891825222c1a4a5af0ce34ac3e822b64",
+    "semantic_hash": "891825222c1a4a5af0ce34ac3e822b64"
   },
   "tests/contract/test_antv_contract.py": {
     "mtime": 1795504225.4774847,
@@ -2238,10 +2238,10 @@
     "semantic_hash": "1fb57f913d7a1c1184fddc236b2b7cf0"
   },
   "tests/unit/test_antv_tools.py": {
-    "mtime": 1795768015.8539257,
-    "seen": 1795769824.8689435,
-    "ast_hash": "34c5eec99f46234b9d04d918bd872cb9",
-    "semantic_hash": "34c5eec99f46234b9d04d918bd872cb9"
+    "mtime": 1795775257.0070481,
+    "seen": 1795777299.7426045,
+    "ast_hash": "293323ea9bd384dc9444f7734f3f2381",
+    "semantic_hash": "293323ea9bd384dc9444f7734f3f2381"
   },
   "specs/012-antv-visualization-tools/checklists/requirements.md": {
     "mtime": 1795504225.1330042,
@@ -3120,10 +3120,10 @@
     "semantic_hash": "bd26199f7e6c3f5d1c0940550d6b84c9"
   },
   "dify/AGIAssistant/AGI_Assistant.yml": {
-    "mtime": 1795661973.783778,
-    "seen": 1795694608.6217103,
-    "ast_hash": "fda3ac3b35168cda2d0444a8a1b1b5ee",
-    "semantic_hash": "fda3ac3b35168cda2d0444a8a1b1b5ee"
+    "mtime": 1795770013.6049566,
+    "seen": 1795777299.743493,
+    "ast_hash": "9e98a150d86ecd3273be279ba3d8b795",
+    "semantic_hash": "9e98a150d86ecd3273be279ba3d8b795"
   },
   "specs/024-install-difyctl/checklists/requirements.md": {
     "mtime": 1795504225.145092,
@@ -5940,16 +5940,16 @@
     "semantic_hash": "4c8f047526857a258fd42e2cbc1eeced"
   },
   "ai-chat-landing/lib/infographic-link.test.ts": {
-    "mtime": 1795767852.6253119,
-    "seen": 1795769824.8684661,
-    "ast_hash": "ce2b9b4807346e7d99bbd98cee5a08c0",
-    "semantic_hash": "ce2b9b4807346e7d99bbd98cee5a08c0"
+    "mtime": 1795773966.3320034,
+    "seen": 1795777299.7416806,
+    "ast_hash": "4b5a65d22e6b925a9865e58c469625cd",
+    "semantic_hash": "4b5a65d22e6b925a9865e58c469625cd"
   },
   "ai-chat-landing/lib/infographic-link.ts": {
-    "mtime": 1795767993.8332257,
-    "seen": 1795769824.8684683,
-    "ast_hash": "3974ec024bd769b90938343b230157a1",
-    "semantic_hash": "3974ec024bd769b90938343b230157a1"
+    "mtime": 1795774023.4841294,
+    "seen": 1795777299.741683,
+    "ast_hash": "ad8d36dd141740440b8d51cb02d281c4",
+    "semantic_hash": "ad8d36dd141740440b8d51cb02d281c4"
   },
   "ai-chat-landing/scripts/infographic-link-check.mjs": {
     "mtime": 1795504225.0346863,
@@ -7272,16 +7272,16 @@
     "semantic_hash": "e95f4801dbf2ac7d0a01be27e4e721f7"
   },
   "ai-chat-landing/app/infographics/[[...path]]/route.test.ts": {
-    "mtime": 1795767916.997881,
-    "seen": 1795769824.8682132,
-    "ast_hash": "3d7f88ad6e7870e11d063b969af7d82d",
-    "semantic_hash": "3d7f88ad6e7870e11d063b969af7d82d"
+    "mtime": 1795774574.4169636,
+    "seen": 1795777299.741509,
+    "ast_hash": "f2f943e9ada3e9f5d93c04e3e723ce09",
+    "semantic_hash": "f2f943e9ada3e9f5d93c04e3e723ce09"
   },
   "ai-chat-landing/app/infographics/[[...path]]/route.ts": {
-    "mtime": 1795769439.4751632,
-    "seen": 1795769824.8682158,
-    "ast_hash": "30ef7c2a9f6fe381f5fc103e180322b0",
-    "semantic_hash": "30ef7c2a9f6fe381f5fc103e180322b0"
+    "mtime": 1795774595.1008654,
+    "seen": 1795777299.7415123,
+    "ast_hash": "5303f727f35ed08d47e2177ced292e15",
+    "semantic_hash": "5303f727f35ed08d47e2177ced292e15"
   },
   "specs/052-infographic-remote-access/checklists/requirements.md": {
     "mtime": 1795766412.0208416,
@@ -7326,15 +7326,69 @@
     "semantic_hash": "ad25213440fb56193bde699fc2dfcaef"
   },
   "specs/052-infographic-remote-access/tasks.md": {
-    "mtime": 1795769470.681071,
-    "seen": 1795769824.871115,
-    "ast_hash": "07b4ebc2ad2170907dcc31e44f1ebfb0",
-    "semantic_hash": "07b4ebc2ad2170907dcc31e44f1ebfb0"
+    "mtime": 1795776930.254617,
+    "seen": 1795777299.7445822,
+    "ast_hash": "9e8902f22d4d2c87c3ce7ab3a0c6d2cb",
+    "semantic_hash": "9e8902f22d4d2c87c3ce7ab3a0c6d2cb"
   },
   "specs/052-infographic-remote-access/test-plan.md": {
-    "mtime": 1795769467.9112995,
-    "seen": 1795769824.8711169,
-    "ast_hash": "cb5924d19980b51a59aad592ed6600fb",
-    "semantic_hash": "cb5924d19980b51a59aad592ed6600fb"
+    "mtime": 1795776930.2485173,
+    "seen": 1795777299.7445855,
+    "ast_hash": "e282faac6dfda30808fd16a212d69d56",
+    "semantic_hash": "e282faac6dfda30808fd16a212d69d56"
+  },
+  ".specify/bugs/missing-infograhics-url/assessment.md": {
+    "mtime": 1795774481.0088654,
+    "seen": 1795777299.7430615,
+    "ast_hash": "8aa3684b5238c965e20822814031a9cd",
+    "semantic_hash": "8aa3684b5238c965e20822814031a9cd"
+  },
+  ".specify/bugs/missing-infograhics-url/fix.md": {
+    "mtime": 1795774630.5330687,
+    "seen": 1795777299.7430642,
+    "ast_hash": "f298b60100bf515a65977c702fb9c151",
+    "semantic_hash": "f298b60100bf515a65977c702fb9c151"
+  },
+  ".specify/bugs/missing-infograhics-url/test.md": {
+    "mtime": 1795776930.254617,
+    "seen": 1795777299.7430663,
+    "ast_hash": "16555481c2c360853f78bd5431176060",
+    "semantic_hash": "16555481c2c360853f78bd5431176060"
+  },
+  ".specify/bugs/this-site-cannot-be-reached/assessment.md": {
+    "mtime": 1795775138.2058365,
+    "seen": 1795777299.7432914,
+    "ast_hash": "1592c01f91fa4293fcb76da4f0deae37",
+    "semantic_hash": "1592c01f91fa4293fcb76da4f0deae37"
+  },
+  ".specify/bugs/this-site-cannot-be-reached/fix.md": {
+    "mtime": 1795776457.7873847,
+    "seen": 1795777299.7432933,
+    "ast_hash": "1b0912b677a58e7cb082a94fe302bb4b",
+    "semantic_hash": "1b0912b677a58e7cb082a94fe302bb4b"
+  },
+  ".specify/bugs/this-site-cannot-be-reached/test.md": {
+    "mtime": 1795776553.6434402,
+    "seen": 1795777299.7432952,
+    "ast_hash": "746d1a5d7976456ec93ca246360a4238",
+    "semantic_hash": "746d1a5d7976456ec93ca246360a4238"
+  },
+  ".specify/bugs/wrong-infographics-url/assessment.md": {
+    "mtime": 1795773882.7798798,
+    "seen": 1795777299.7433236,
+    "ast_hash": "971d20695439e1e7ac3f226c246420cb",
+    "semantic_hash": "971d20695439e1e7ac3f226c246420cb"
+  },
+  ".specify/bugs/wrong-infographics-url/fix.md": {
+    "mtime": 1795774051.8161604,
+    "seen": 1795777299.7433255,
+    "ast_hash": "143e6a55bc412b3a9ee1c6fdfb736628",
+    "semantic_hash": "143e6a55bc412b3a9ee1c6fdfb736628"
+  },
+  ".specify/bugs/wrong-infographics-url/test.md": {
+    "mtime": 1795774110.779902,
+    "seen": 1795777299.7433283,
+    "ast_hash": "d10c16d21bcc885d377b01e6f136a71c",
+    "semantic_hash": "d10c16d21bcc885d377b01e6f136a71c"
   }
 }
