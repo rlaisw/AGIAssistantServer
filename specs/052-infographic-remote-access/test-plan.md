@@ -65,3 +65,9 @@
 - H2 (unknown id): 404. H4 (traversal): rejected.
 - Pending owner-present: E1/E3 signed-in remote-client run and E6 timing (needs a second machine / user session); E7 (upstream down) unit-proven (U8) only.
 - Note: the sidecar now emits `/infographics/p/<slug>/<id>/` when the tool call carries `hermes_slug`; the Dify tool-node binding does not yet pass it, so live answers currently carry the plain relative form (still remote-reachable per E4/E5). Wiring `hermes_slug` into the DSL binding is the follow-up for full FR-007 emission.
+
+**2026-11-27 — T011: profiled emission live**
+
+- Sidecar: `antv_infographic` accepts `hermes_slug` (default ""); with slug → `/infographics/p/<slug>/<id>/`, without → `/infographics/<id>/` (verified live via MCP call: `ec04dc61d9db` profiled, `06df56fda267` plain).
+- Dify: `hermes_slug` bound on both `antv_infographic` tool nodes via the auto-bound variable selector (`auto: 0`, variable `['1776072202913','hermes_slug']`); chatflow republished to app `194e1edf` ("chatflow-publish: published").
+- Enforcement: anonymous request to `https://agia.tvb.com.hk/infographics/p/raymond-lai-tvb-com-hk/ec04dc61d9db/` → **403**; upstream serves the same id 200.

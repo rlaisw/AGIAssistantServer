@@ -638,10 +638,10 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
     from .antv.errors import AntvError
     from .antv.errors import envelope as _antv_envelope
 
-    def _antv(fn, *args):
+    def _antv(fn, *args, **kwargs):
         """Run an antv tool body; AntvError -> honest envelope (FR-006)."""
         try:
-            return fn(cfg, *args)
+            return fn(cfg, *args, **kwargs)
         except AntvError as exc:
             log.warning("antv tool error: %s", exc.code)
             return _antv_envelope(exc)
@@ -679,7 +679,7 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                      axis_x_title, axis_y_title, width, height)
 
     @mcp.tool()
-    def antv_infographic(description: str) -> dict:
+    def antv_infographic(description: str, hermes_slug: str = "") -> dict:
         """Render an infographic from declarative AntV Infographic syntax.
         Returns {id, url, usage} — the url opens the rendered infographic in a browser.
 
@@ -733,7 +733,7 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         description of the design — only the syntax. Choose the closest
         template to the user's intent and put their content into the data
         fields."""
-        return _antv(antv_infographic_mod.create_infographic, description)
+        return _antv(antv_infographic_mod.create_infographic, description, slug=hermes_slug)
 
     from .hermes_client import (
         POWERSHELL_INSTRUCTIONS as _HERMES_POWERSHELL_INSTRUCTIONS,
