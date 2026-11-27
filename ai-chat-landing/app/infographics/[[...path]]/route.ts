@@ -6,7 +6,7 @@ import { identityInputs } from "@/lib/profiles/identity-user"
 import { loadAuthConfig } from "@/lib/auth/config"
 
 const UPSTREAM = process.env.INFOGRAPHIC_UPSTREAM ?? "http://127.0.0.1:28080"
-const PATH_RE = /^(?:p\/([a-z0-9-]+)\/)?([0-9a-f]{10,})(?:\/.*)?$/
+const PATH_RE = /^(?:p\/([a-z0-9-]+)\/)?([0-9a-f]{10,})(\/.*)?$/
 
 export async function GET(req: Request) {
   const joined = new URL(req.url).pathname.replace(/^\/infographics\/?/, "").split("/").filter(Boolean).join("/")
@@ -22,9 +22,12 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "forbidden: this infographic belongs to another user" }, { status: 403 })
     }
   }
+  // bug missing-infograhics-url: the p/<slug>/ namespace is app-level only —
+  // the infographic server understands /infographics/<id>[/asset]; strip it.
+  const asset = m[3] ?? ""
   // bare-id requests (Next strips the trailing slash) get the directory form
   // upstream; asset paths keep their exact suffix
-  const upstreamPath = "/infographics/" + joined + (joined.includes("/") ? "" : "/")
+  const upstreamPath = "/infographics/" + m[2] + (asset || "/")
   try {
     const res = await fetch(UPSTREAM + upstreamPath, { headers: { accept: req.headers.get("accept") ?? "*/*" }, redirect: "manual" })
     // upstream 307s bare ids to the loopback host — rewrite Location to same-origin

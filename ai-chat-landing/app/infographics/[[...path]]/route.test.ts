@@ -60,3 +60,40 @@ describe("infographic proxy ownership (spec 052 U6/U7, SC-005)", () => {
     expect(res.status).toBe(403)
   })
 })
+
+describe("upstream path construction (bug missing-infograhics-url)", () => {
+  it("strips the p/<slug>/ segment before proxying, bare id → directory form", async () => {
+    vi.doMock("@/lib/auth/guard", () => ({
+      getIdentity: () => ({ oid: "oid-1", email: "raymond.lai@tvb.com.hk", displayName: "Raymond Lai" }),
+    }))
+    vi.doMock("@/lib/auth/config", () => ({ loadAuthConfig: () => ({}) }))
+    const forwarded: string[] = []
+    vi.stubGlobal("fetch", vi.fn(async (url: string | URL) => {
+      forwarded.push(String(url))
+      return new Response("<html>ok</html>", { status: 200, headers: { "content-type": "text/html" } })
+    }))
+    vi.resetModules()
+    const { GET } = await import("./route")
+    const res = await GET(new Request("http://localhost:3000/infographics/p/raymond-lai-tvb-com-hk/4cafe75efa03/") as never)
+    expect(res.status).toBe(200)
+    expect(forwarded[0]).toContain("/infographics/4cafe75efa03/")
+    expect(forwarded[0]).not.toContain("/p/")
+  })
+
+  it("strips the profiled prefix for asset paths too", async () => {
+    vi.doMock("@/lib/auth/guard", () => ({
+      getIdentity: () => ({ oid: "oid-1", email: "raymond.lai@tvb.com.hk", displayName: "Raymond Lai" }),
+    }))
+    vi.doMock("@/lib/auth/config", () => ({ loadAuthConfig: () => ({}) }))
+    const forwarded: string[] = []
+    vi.stubGlobal("fetch", vi.fn(async (url: string | URL) => {
+      forwarded.push(String(url))
+      return new Response("x", { status: 200 })
+    }))
+    vi.resetModules()
+    const { GET } = await import("./route")
+    await GET(new Request("http://localhost:3000/infographics/p/raymond-lai-tvb-com-hk/4cafe75efa03/img.js") as never)
+    expect(forwarded[0]).toContain("/infographics/4cafe75efa03/img.js")
+    expect(forwarded[0]).not.toContain("/p/")
+  })
+})
