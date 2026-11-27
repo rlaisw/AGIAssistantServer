@@ -103,6 +103,10 @@ def recreate_container(container: str, image: str, report) -> None:
           if os.environ.get("HERMES_PROVISION_TOKEN") else []),
         *(["-e", f"HERMES_GATEWAY_URL={os.environ['HERMES_GATEWAY_URL']}"]
           if os.environ.get("HERMES_GATEWAY_URL") else []),
+        # bug this-site-cannot-be-reached: pass the public origin through so
+        # the infographic tool emits absolute, model-copyable URLs
+        *(["-e", f"INFOGRAPHIC_PUBLIC_ORIGIN={os.environ['INFOGRAPHIC_PUBLIC_ORIGIN']}"]
+          if os.environ.get("INFOGRAPHIC_PUBLIC_ORIGIN") else []),
         "-p", "28080:28080", "--restart", "always",
         *([] if not win_cpus else ["-e", f"WINDOWS_LOGICAL_PROCESSORS={win_cpus}"]),
         image,

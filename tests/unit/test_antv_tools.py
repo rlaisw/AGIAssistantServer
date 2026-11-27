@@ -292,3 +292,29 @@ def test_create_infographic_url_is_relative_and_profiled(monkeypatch, tmp_path):
     assert "localhost" not in with_slug["url"]
     plain = ig.create_infographic(cfg, "title: x")
     assert plain["url"] == f"/infographics/{plain['id']}/"
+
+
+def test_create_infographic_absolute_when_origin_configured(tmp_path):
+    # bug this-site-cannot-be-reached: with a public origin configured the
+    # tool emits a full absolute URL the model can copy verbatim
+    from agentic_rag_mcp.config import Config
+    from agentic_rag_mcp.antv import infographic as ig
+    cfg = Config(state_db=tmp_path / "s.sqlite3", vector_dir=tmp_path / "v")
+    cfg.infographic_public_origin = "https://agia.tvb.com.hk"
+    import unittest.mock as mock
+    with mock.patch.object(ig, "served_dir", lambda c: tmp_path):
+        with_slug = ig.create_infographic(cfg, "title: x", slug="raymond-lai-tvb-com-hk")
+        assert with_slug["url"] == "https://agia.tvb.com.hk/infographics/p/raymond-lai-tvb-com-hk/" + with_slug["id"] + "/"
+        plain = ig.create_infographic(cfg, "title: x")
+        assert plain["url"] == f"https://agia.tvb.com.hk/infographics/{plain['id']}/"
+
+
+def test_create_infographic_origin_validation(monkeypatch):
+    # a malformed origin (path suffix) must fail config load, not emit bad links
+    from agentic_rag_mcp.config import load_config
+    monkeypatch.setenv("INFOGRAPHIC_PUBLIC_ORIGIN", "https://agia.tvb.com.hk/some/path")
+    try:
+        load_config()
+        raise AssertionError("expected ValueError for origin with a path")
+    except ValueError:
+        pass

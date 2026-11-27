@@ -31,3 +31,7 @@ COPY dify/docker/mcp-server/server.py ./server.py
 
 EXPOSE 28080
 CMD ["python", "server.py"]
+
+# bug this-site-cannot-be-reached: infographic tool emits absolute URLs against
+# the deployed chat origin so models copy them verbatim; overridable via -e.
+ENV INFOGRAPHIC_PUBLIC_ORIGIN=https://agia.tvb.com.hk

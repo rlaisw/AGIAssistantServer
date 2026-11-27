@@ -89,12 +89,16 @@ def create_infographic(cfg: Config, description: str, slug: str = "") -> dict:
         )
     infographic_id = uuid.uuid4().hex[:12]
     (served_dir(cfg) / f"{infographic_id}.txt").write_text(description, encoding="utf-8")
-    # spec 052 FR-002/FR-007/FR-008: relative URL, profiled when the caller's
-    # slug is known — no host literal is ever emitted.
+    # spec 052 FR-002/FR-007/FR-008: no host-bound loopback literal is ever
+    # emitted. bug this-site-cannot-be-reached: when a public origin is
+    # configured, emit an ABSOLUTE URL so chat models copy it verbatim
+    # instead of fabricating hosts; unset falls back to the relative form.
     namespace = f"p/{slug}/" if slug else ""
+    origin = getattr(cfg, "infographic_public_origin", "")
+    prefix = f"{origin}/" if origin else "/"
     return {
         "id": infographic_id,
-        "url": f"/infographics/{namespace}{infographic_id}/",
+        "url": f"{prefix}infographics/{namespace}{infographic_id}/",
         "usage": (
             "Give the user the url as a markdown link — it opens the rendered "
             "infographic in a browser."

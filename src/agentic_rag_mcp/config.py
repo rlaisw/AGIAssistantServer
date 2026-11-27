@@ -6,6 +6,7 @@ Config file: ~/.config/agentic-rag-mcp/config.toml
 from __future__ import annotations
 
 import os
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -126,6 +127,7 @@ class Config:
     antv_max_inline_image_bytes: int = 2_097_152
     antv_infographic_max_syntax_bytes: int = 65_536
     antv_infographic_served_root: Path = Path("/opt/ppt-master/projects/infographics")
+    infographic_public_origin: str = ""
     # spec 028: Hermes Agent lane — gated Windows file tasks
     # audit_path lives under the volume-backed config tree (~/.config/agentic-rag-mcp,
     # mounted into the sidecar) so the append-only trail survives container
@@ -237,6 +239,13 @@ def load_config(path: Path | None = None) -> Config:
     cfg.antv_infographic_served_root = Path(
         str(_get(raw, "antv", "infographic_served_root", default=default_infographic_root))
     ).expanduser()
+    # bug this-site-cannot-be-reached: when set, the infographic tool emits
+    # absolute URLs against this origin so chat models copy them verbatim
+    # instead of improvising hosts. Must be a scheme+host origin, no path.
+    _origin = str(os.environ.get("INFOGRAPHIC_PUBLIC_ORIGIN", "") or "").strip().rstrip("/")
+    if _origin and not re.match(r"^https?://[^/]+$", _origin):
+        raise ValueError(f"INFOGRAPHIC_PUBLIC_ORIGIN must be an http(s) origin without a path, got {_origin!r}")
+    cfg.infographic_public_origin = _origin
     # spec 028: [hermes] api_url / api_key / timeout_s / allowed_root / audit_path
     cfg.hermes_api_url = str(
         os.environ.get("HERMES_API_URL")
