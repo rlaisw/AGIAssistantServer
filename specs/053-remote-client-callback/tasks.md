@@ -103,7 +103,7 @@ No new dependencies or scaffolding — the feature extends the existing `agentic
 ## Phase 8: Polish & Cross-Cutting Concerns
 
 - [X] T022 Run the full suite green: `.venv/bin/python -m pytest tests/unit tests/contract -q` (all existing suites unchanged); `ruff check` on new/changed files, fix new findings only; Chat UI checks green
-- [ ] T023 Update `DEPLOY.md` (if not already covered by T014) and the spec Status line with the acceptance record; fold the artifacts (`specs/053-remote-client-callback/*`) into the next commit; run `graphify update .` per the AGENTS.md known-bug runbook (manual `--update` path, never the watch CLI)
+- [X] T023 Update `DEPLOY.md` (if not already covered by T014) and the spec Status line with the acceptance record; fold the artifacts (`specs/053-remote-client-callback/*`) into the next commit; run `graphify update .` per the AGENTS.md known-bug runbook (manual `--update` path, never the watch CLI)
 
 ---
 
