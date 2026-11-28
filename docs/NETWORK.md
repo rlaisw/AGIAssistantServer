@@ -53,7 +53,7 @@ flowchart LR
         CB1["client WindowsMCP bridge<br/>:18800 → 127.0.0.1:8800<br/>(firewall-scoped to the host)"]
         CB2["client OfficeMCP bridge<br/>:18888 → 127.0.0.1:8888"]
     end
-    SIDECAR -. "⑫ remote sessions: sidecar-direct<br/>(mcp_action/v2/file lanes)<br/>+ client_origin from ⑦'s XFF" .-> CB1
+    SIDECAR -. "⑫ remote sessions: sidecar-direct<br/>(mcp_action verification + the remote-native<br/>office-v2 templates via proxy.call_at)<br/>+ client_origin from ⑦'s XFF" .-> CB1
     HERMES -. "⑬ remote agent lanes: per-client<br/>mcp__WindowsMCP_<name>__* tools<br/>(gateway mcp_servers); recovery ONLY<br/>via these bridges, never 127.0.0.1" .-> CB1
     HERMES -.-> CB2
 
@@ -81,7 +81,7 @@ flowchart LR
 | ⑧ | Chat UI | Dify nginx | `http://localhost/v1/chat-messages` · `/v1/chat-messages/{task_id}/stop` (stop-generation, spec 027) · `/v1/conversations*` (history list, messages, delete — specs 014–015) (Bearer app key, server-side only) | Host → published port 80 — same entry door as ①, Service API path |
 | ⑨ | You (browser) | sidecar /exports | `http://localhost:28080/exports/<project>/<file>.pptx` | Host → published port — PPT-Master deck downloads (spec 009) |
 | ⑫ | **agentic-rag** | Remote Windows client bridges | `http://<client-ip>:18800/sse` (→ its `127.0.0.1:8800`) · `:18888/sse` (→ `:8888`) | Container → LAN client, only when the session's `client_origin` matches an enabled registry entry (`~/.config/agentic-rag-mcp/remote-clients.toml`, spec 053) — canonical-Host headers preserved by the client bridge (`services/client-bridge/bridge.py`); empty/unregistered origin keeps the host-local paths (⑨–⑪) byte-for-byte; disabled/broken registry → honest refusal, never silent host fallback |
-| ⑬ | Hermes agent | Remote client (via gateway `mcp_servers`) | per-client registered tools `mcp__WindowsMCP_<name>__*` / `mcp__OfficeMCP_<name>__*` | Remote agent turns name these tools (registration in `~/.hermes/config.yaml` + every profile config — REQUIRED part of client registration); a degraded gateway channel recovers ONLY via the client's bridges (⑫) — never `127.0.0.1` (the host) — and every remote write is gated on a `COMPUTERNAME` identity match |
+| ⑬ | Hermes agent | Remote client (via gateway `mcp_servers`) | per-client registered tools `mcp__WindowsMCP_<name>__*` / `mcp__OfficeMCP_<name>__*` | Remote agent turns name these tools (registration in `~/.hermes/config.yaml` + every profile config — REQUIRED part of client registration); the remote FILE lane rides them too (per-client FileSystem tools, T024); a degraded gateway channel recovers ONLY via the client's bridges (⑫) — never `127.0.0.1` (the host) — and every remote write is gated on a `COMPUTERNAME` identity match |
 
 ## The two rules this encodes
 
@@ -120,6 +120,7 @@ flowchart LR
 | `agentic-rag:28080` refused from a container | Wrong path — internal port is 28080 | matrix ③ |
 | `localhost:8080` refused on host | Old port freed by alignment | use 28080 (matrix ⑤) |
 | Remote prompt runs on the host / no window on the client (spec 053) | Session origin not matched: registry entry missing, bridges down, or the routing condition didn't render | matrix ⑫⑬ + `DEPLOY.md` spec-053 section |
+| A remote Office request takes minutes, not seconds | The prompt routed through `hermes_office_task` — a second LLM agent turn (~1000+ reasoning events) plus the gateway arg-strip recovery — instead of the remote-native v2 fast path (sidecar-direct, 1.7–4.4 s) | round-4 DSL routing (bug `very-long-long-time-to-answer-back`); republish both twins if the DSL predates 2026-11-28 round 4 |
 | Remote answer hangs, no verdict | Pre-2026-11-28 v1 bug (agent drove the bridge manually); now: unreachable client tools → honest `TASK: FAILED` naming the machine | `.specify/bugs/no-open-word-hangs-up/` |
 | Dify "Cannot connect to MCP server" | SSRF allowlist missing | `DEPLOY.md` Step 4.2 |
 | Dify edit-save → 500 | Dify identifier-vs-UUID bug — delete + re-add | `DEPLOY.md` Step 4.5 |

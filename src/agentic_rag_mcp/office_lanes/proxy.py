@@ -29,6 +29,14 @@ _RECOVERY = ("recover: the OfficeMCP service runs as the officemcp-server "
 _WRITE_TEMPLATE = """
 import json, os
 d = json.loads(data)
+# spec-053 machine-identity gate (remote targets): a wrong-machine act is
+# refused before anything runs — the sidecar passes target_host only for
+# remote sessions, so local payloads are unchanged
+if d.get('target_host'):
+    _cn = os.environ.get('COMPUTERNAME', '').strip().upper()
+    assert _cn == str(d['target_host']).strip().upper(), (
+        'wrong machine: connected to COMPUTERNAME=%s, expected %s - refusing to act'
+        % (_cn or '<unknown>', d['target_host']))
 import win32com.client
 # COM apartment guard (2026-11-14): some RunPython workers execute scripts
 # on a COM-uninitialized thread (-2147221008); failures here must not block
@@ -127,6 +135,14 @@ output = json.dumps({'path': path, 'size': size, 'existed': bool(existed),
 _READ_TEMPLATE = """
 import json, os
 d = json.loads(data)
+# spec-053 machine-identity gate (remote targets): a wrong-machine act is
+# refused before anything runs — the sidecar passes target_host only for
+# remote sessions, so local payloads are unchanged
+if d.get('target_host'):
+    _cn = os.environ.get('COMPUTERNAME', '').strip().upper()
+    assert _cn == str(d['target_host']).strip().upper(), (
+        'wrong machine: connected to COMPUTERNAME=%s, expected %s - refusing to act'
+        % (_cn or '<unknown>', d['target_host']))
 import win32com.client
 # COM apartment guard (2026-11-14): some RunPython workers execute scripts
 # on a COM-uninitialized thread (-2147221008); failures here must not block
@@ -153,6 +169,14 @@ else:
 _XLS_WRITE_TEMPLATE = """
 import json, os
 d = json.loads(data)
+# spec-053 machine-identity gate (remote targets): a wrong-machine act is
+# refused before anything runs — the sidecar passes target_host only for
+# remote sessions, so local payloads are unchanged
+if d.get('target_host'):
+    _cn = os.environ.get('COMPUTERNAME', '').strip().upper()
+    assert _cn == str(d['target_host']).strip().upper(), (
+        'wrong machine: connected to COMPUTERNAME=%s, expected %s - refusing to act'
+        % (_cn or '<unknown>', d['target_host']))
 import win32com.client
 # COM apartment guard (2026-11-14): see the Word template note
 import pythoncom
@@ -264,6 +288,14 @@ output = json.dumps({'path': path, 'size': size, 'existed': bool(existed),
 _PPT_WRITE_TEMPLATE = """
 import json, os
 d = json.loads(data)
+# spec-053 machine-identity gate (remote targets): a wrong-machine act is
+# refused before anything runs — the sidecar passes target_host only for
+# remote sessions, so local payloads are unchanged
+if d.get('target_host'):
+    _cn = os.environ.get('COMPUTERNAME', '').strip().upper()
+    assert _cn == str(d['target_host']).strip().upper(), (
+        'wrong machine: connected to COMPUTERNAME=%s, expected %s - refusing to act'
+        % (_cn or '<unknown>', d['target_host']))
 import win32com.client
 # COM apartment guard (2026-11-14): see the Word template note
 import pythoncom
@@ -555,6 +587,13 @@ class OfficeProxy:
                 continue  # a torn frame from a dying stream — skip
         raise ConnectionError("OfficeMCP response timeout")
 
+    def close(self) -> None:
+        """Close the SSE stream (a one-shot remote session's teardown)."""
+        try:
+            self._sse.close()
+        except Exception:  # noqa: BLE001, S110 — best-effort teardown
+            pass
+
     # -- the call -----------------------------------------------------------
 
     def call(self, tool: str, arguments: dict) -> dict:
@@ -685,15 +724,26 @@ class OfficeProxy:
                     "reason": "partial:word-print-display — " + "; ".join(failures)}
         return {"status": "ok", **payload}
 
-    def write_doc(self, text: str, name: str, root: str) -> dict:
+    def write_doc(self, text: str, name: str, root: str, *,
+                  base_url: str | None = None,
+                  target_host: str | None = None) -> dict:
         """Create a Word document with the literal text, save as `name` in
         `root`, and verify IN CODE (exists, size, content). Overwrites are
         reported honestly (`existed`) — the spec-031 REPLACED discipline,
-        detected server-side."""
-        out = self.call("RunPython",
-                        {"code": _WRITE_TEMPLATE,
-                         "data": json.dumps({"text": text, "name": name,
-                                             "root": root})})
+        detected server-side. A `base_url`/`target_host` pair routes the SAME
+        template to a remote machine's OfficeMCP (one-shot session) with the
+        identity gate armed; local stays on the persistent session."""
+        data = {"text": text, "name": name, "root": root}
+        if target_host:
+            data["target_host"] = target_host
+        if base_url:
+            out = call_at(base_url, "RunPython",
+                          {"code": _WRITE_TEMPLATE,
+                           "data": json.dumps(data)})
+        else:
+            out = self.call("RunPython",
+                            {"code": _WRITE_TEMPLATE,
+                             "data": json.dumps(data)})
         if out.get("status") != "ok":
             return out
         payload = self._payload_json(out["text"])
@@ -715,14 +765,24 @@ class OfficeProxy:
                     "open_docs": payload.get("open_docs")}
         return {"status": "ok", **payload}
 
-    def write_xls(self, cells: dict, name: str, root: str) -> dict:
+    def write_xls(self, cells: dict, name: str, root: str, *,
+                   base_url: str | None = None,
+                   target_host: str | None = None) -> dict:
         """Create a workbook, write the literal cell map {addr: text},
         save, verify in code, leave open + fronted (the doc_write_v2
-        discipline, extended per this bug)."""
-        out = self.call("RunPython",
-                        {"code": _XLS_WRITE_TEMPLATE,
-                         "data": json.dumps({"cells": cells, "name": name,
-                                             "root": root})})
+        discipline, extended per this bug). Remote pair routes to the
+        requesting machine's OfficeMCP."""
+        data = {"cells": cells, "name": name, "root": root}
+        if target_host:
+            data["target_host"] = target_host
+        if base_url:
+            out = call_at(base_url, "RunPython",
+                          {"code": _XLS_WRITE_TEMPLATE,
+                           "data": json.dumps(data)})
+        else:
+            out = self.call("RunPython",
+                            {"code": _XLS_WRITE_TEMPLATE,
+                             "data": json.dumps(data)})
         if out.get("status") != "ok":
             return out
         payload = self._payload_json(out["text"])
@@ -735,13 +795,23 @@ class OfficeProxy:
                               "did not read back the literal value"}
         return {"status": "ok", **payload}
 
-    def write_ppt(self, title: str, text: str, name: str, root: str) -> dict:
+    def write_ppt(self, title: str, text: str, name: str, root: str, *,
+                   base_url: str | None = None,
+                   target_host: str | None = None) -> dict:
         """Create a one-slide presentation (title + optional body text),
-        save, verify, leave open + fronted."""
-        out = self.call("RunPython",
-                        {"code": _PPT_WRITE_TEMPLATE,
-                         "data": json.dumps({"title": title, "text": text,
-                                             "name": name, "root": root})})
+        save, verify, leave open + fronted. Remote pair routes to the
+        requesting machine's OfficeMCP."""
+        data = {"title": title, "text": text, "name": name, "root": root}
+        if target_host:
+            data["target_host"] = target_host
+        if base_url:
+            out = call_at(base_url, "RunPython",
+                          {"code": _PPT_WRITE_TEMPLATE,
+                           "data": json.dumps(data)})
+        else:
+            out = self.call("RunPython",
+                            {"code": _PPT_WRITE_TEMPLATE,
+                             "data": json.dumps(data)})
         if out.get("status") != "ok":
             return out
         payload = self._payload_json(out["text"])
@@ -754,11 +824,22 @@ class OfficeProxy:
                               "slide title did not read back the literal text"}
         return {"status": "ok", **payload}
 
-    def read_doc(self, name: str, root: str) -> dict:
-        """Read a document's text back (read-only) — the verify/report half."""
-        out = self.call("RunPython",
-                        {"code": _READ_TEMPLATE,
-                         "data": json.dumps({"name": name, "root": root})})
+    def read_doc(self, name: str, root: str, *,
+                 base_url: str | None = None,
+                 target_host: str | None = None) -> dict:
+        """Read a document's text back (read-only) — the verify/report half.
+        Remote pair routes to the requesting machine's OfficeMCP."""
+        data = {"name": name, "root": root}
+        if target_host:
+            data["target_host"] = target_host
+        if base_url:
+            out = call_at(base_url, "RunPython",
+                          {"code": _READ_TEMPLATE,
+                           "data": json.dumps(data)})
+        else:
+            out = self.call("RunPython",
+                            {"code": _READ_TEMPLATE,
+                             "data": json.dumps(data)})
         if out.get("status") != "ok":
             return out
         payload = self._payload_json(out["text"])
@@ -773,3 +854,21 @@ class OfficeProxy:
     def root_folder(self) -> str:
         out = self.call("RootFolder", {})
         return out.get("text", "").strip() if out.get("status") == "ok" else ""
+
+
+def call_at(base_url: str, tool: str, arguments: dict,
+            timeout_s: float = 60.0) -> dict:
+    """One-shot tools/call to OfficeMCP at an explicit base URL — the spec-053
+    remote path (very-long-long-time-to-answer-back, 2026-11-28): remote
+    sessions execute the SAME fixed templates against the requesting
+    machine's OfficeMCP bridge, as one deterministic sidecar call — no inner
+    agent turn, no gateway channel. A fresh short-lived session per call
+    (remote writes are infrequent; no persistent cross-machine state).
+    Accepts the base WITH or WITHOUT the /sse suffix (the registry URL
+    carries it; OfficeProxy appends its own /sse)."""
+    base = base_url.rstrip("/").removesuffix("/sse")
+    proxy = OfficeProxy(base_url=base, timeout_s=timeout_s)
+    try:
+        return proxy.call(tool, arguments)
+    finally:
+        proxy.close()

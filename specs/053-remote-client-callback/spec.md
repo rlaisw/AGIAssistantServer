@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-27
 
-**Status**: Implemented (offline suites green, 2026-11-27) — live acceptance battery (T019/T020) pending an owner-present remote client
+**Status**: Live-accepted (2026-11-28) — implemented (T001–T031), converged (4 passes), deployed (sidecar + both twins), and owner-attested from a301-11120: Word/Excel/PowerPoint remote writes at ~10 s average (audit 1.7–3.1 s tool time); SC-001/002/006/007 exercised live across the bug rounds
 
 **Input**: User description: "i want to Hermes agent call-back remote client not my local windows desktop . i just tested in remote windows client that installed windows-mcp and officemcp , type this in prompt 'open microsoft word, type hello raymond', but AGI Chat open Microsoft Word on wsl of Windows desktop (not on my remote client windows desktop). do you know what i mean?"
 
@@ -103,7 +103,7 @@
 - The same owner signs in (spec 051 profile) from the remote client: the profile is unchanged; targeting is per machine, and the audit attributes both the requesting profile and the target machine.
 - The remote client runs a different Windows account than the host: actions execute under the remote client's own logged-in account, and answers describe that machine's actual state.
 - ~~The Windows file lane cannot follow a remote target~~ (superseded by T024, 2026-11-28): the file lane now routes remote-targeted tasks to the matched client via the agent's per-client FileSystem tools — the launch-lane pattern (gates first, then per-target instructions); local host-mounted paths keep the blocking JSON path byte-for-byte. The interim refusal (documented when only `/mnt/c` mounting existed) is retired.
-- The office-v2 fast paths (`doc_write_v2`/`xls_write_v2`/`ppt_write_v2`/`doc_read_v2`) are local-only: a remote session's v2 call is refused server-side (audited, naming the machine and the correct lane), and the Dify routing condition renders the actual origin — never an unsubstitutable placeholder (bug `no-open-microsoft-word` rounds 1–2, 2026-11-28).
+- The office-v2 fast paths (`doc_write_v2`/`xls_write_v2`/`ppt_write_v2`/`doc_read_v2`) are remote-native (round 4, 2026-11-28): a remote session's v2 call executes the SAME fixed template against the requesting machine's OfficeMCP bridge as ONE deterministic sidecar call (identity gate in the payload, audit carries the target) — superseding the interim round-2 refusal; the Dify routing condition renders the actual origin, never an unsubstitutable placeholder (bug `no-open-microsoft-word` rounds 1–2; `very-long-long-time-to-answer-back` round 3).
 - On a degraded gateway channel, a remote agent turn recovers ONLY via the matched client's direct channels (never the host's `127.0.0.1` recovery paths) and gates every write on a `COMPUTERNAME` identity match — a mismatch is an honest `TASK: FAILED`, never a wrong-machine write or a fabricated identity confirmation (bug `no-open-microsoft-word` round 3, 2026-11-28 — the 05:17 turn wrote on the host while claiming the remote target).
 - Word/Office or a requested app is missing on the remote client: the action fails honestly with the remote machine's real error; no fabricated success.
 - The remote client is a second machine of the same owner, not a new user: no new sign-in, profile, or sharing surface is created by this feature.

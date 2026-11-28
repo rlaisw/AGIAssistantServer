@@ -108,6 +108,18 @@
       "input_tokens": 33000,
       "output_tokens": 6500,
       "files": 39
+    },
+    {
+      "date": "2026-11-28T09:40:22.526957+00:00",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "files": 23
+    },
+    {
+      "date": "2026-11-28T10:17:08.600535+00:00",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "files": 4
     }
   ],
   "total_input_tokens": 337800,

@@ -229,6 +229,37 @@ def test_office_remote_instructions_name_the_office_tools():
     assert "Every reference to http://127.0.0.1" not in out
 
 
+def test_office_remote_instructions_mandate_the_single_payload_fast_path():
+    """very-long-long-time-to-answer-back: the remote Office protocol walked
+    4–6 separate tool-call round-trips (median ~70 s, worst 308 s); the one
+    turn that combined everything into a single payload finished in 56 s.
+    The instructions must MANDATE the combined payload for simple literal
+    writes — identity gate first line + attach + type + save + disk
+    read-back in ONE call — with canaries only when arguments arrive
+    stripped."""
+    out = targeted_instructions(OFFICE_INSTRUCTIONS, REMOTE, office=True)
+    assert "SINGLE-PAYLOAD FAST PATH" in out
+    assert "ONE combined payload" in out
+    assert "do NOT walk the write as separate tool calls" in out
+    # the identity gate rides inside the payload (first sub-stage)
+    assert "first line asserts the machine identity" in out
+    assert "COMPUTERNAME" in out
+    # the read-back rides inside too (honesty gates coalesced, not removed)
+    assert "re-open the saved file FROM DISK" in out
+    # one message, all STEP markers
+    assert "report every sub-stage in one message" in out
+    # canaries only when args stripped — not a standing pre-step
+    assert "ONLY if a call arrives with its arguments stripped" in out
+
+
+def test_run_command_remote_has_no_office_fast_path():
+    """The fast path binds only the Office lane (simple literal writes);
+    the run-command lane keeps its own instructions unchanged."""
+    out = targeted_instructions(RUN_COMMAND_INSTRUCTIONS, REMOTE)
+    assert "SINGLE-PAYLOAD FAST PATH" not in out
+    assert "REMOTE TARGET (spec 053)" in out
+
+
 # ---------------------------------------- server tools: routing, gates, audit
 
 
@@ -583,44 +614,126 @@ def test_resolve_audit_name_is_none_for_local():
                                reason="r")
     assert refused.audit_name == REMOTE_NAME
 
-# ------------------------------------------- no-open-microsoft-word (round 2)
+# ------------------------------------------- no-open-microsoft-word (rounds 2-4)
 
-def test_doc_write_v2_refuses_a_remote_session_never_writes_on_the_host(tmp_path, monkeypatch):
-    """The office v2 fast path is HOST-LOCAL: a remote session's call is
-    refused server-side (audited, target named) — the model then routes to
-    hermes_office_task per the DSL condition."""
-    _Capture.install(monkeypatch)
+def _fake_office_at(monkeypatch, payloads=None, calls=None):
+    """Fake the proxy transports: remote one-shot call_at records (base_url,
+    tool, arguments); the persistent local .call is recorded but never
+    dialed. Returns the call recorder."""
+    import agentic_rag_mcp.office_lanes.proxy as proxy_mod
+
+    if calls is None:
+        calls = []
+
+    def fake_call(self, tool, arguments):
+        calls.append({"kind": "local", "base_url": self.base,
+                      "tool": tool, "arguments": arguments})
+        payload = (payloads or {}).get(tool,
+                                       {"path": "C:\\OfficeMCP\\x.docx",
+                                        "size": 10, "existed": False,
+                                        "text_ok": True, "open_docs": 1,
+                                        "text": "readback"})
+        return {"status": "ok", "text": json.dumps(
+            {"success": True, "output": json.dumps(payload)})}
+
+    def fake_call_at(base_url, tool, arguments, timeout_s=60.0):
+        calls.append({"kind": "remote", "base_url": base_url,
+                       "tool": tool, "arguments": arguments})
+        payload = (payloads or {}).get(tool,
+                                       {"path": "C:\\OfficeMCP\\x.docx",
+                                        "size": 10, "existed": False,
+                                        "text_ok": True, "open_docs": 1,
+                                        "text": "readback"})
+        return {"status": "ok", "text": json.dumps(
+            {"success": True, "output": json.dumps(payload)})}
+
+    monkeypatch.setattr(proxy_mod.OfficeProxy, "call", fake_call)
+    monkeypatch.setattr(proxy_mod.OfficeProxy, "_start_session",
+                        lambda self: None)
+    monkeypatch.setattr(proxy_mod, "call_at", fake_call_at)
+    return calls
+
+
+def test_call_at_normalizes_the_sse_suffix(monkeypatch):
+    """Live bug (2026-11-28 benchmark): the registry office URL carries /sse,
+    OfficeProxy appends its own — /sse/sse dialed 404. call_at must accept
+    either form."""
+    import agentic_rag_mcp.office_lanes.proxy as proxy_mod
+    seen = []
+
+    class _P:
+        def __init__(self, base_url, timeout_s=60.0):
+            seen.append(base_url)
+
+        def call(self, tool, arguments):
+            return {"status": "ok", "text": ""}
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(proxy_mod, "OfficeProxy", _P)
+    proxy_mod.call_at("http://10.0.0.9:18888/sse", "RunPython", {})
+    proxy_mod.call_at("http://10.0.0.9:18888", "RunPython", {})
+    assert seen == ["http://10.0.0.9:18888", "http://10.0.0.9:18888"]
+
+
+def test_doc_write_v2_remote_writes_via_the_client_bridge(tmp_path, monkeypatch):
+    """Round 4 (very-long-long-time-to-answer-back): the office v2 fast path
+    is REMOTE-NATIVE — a remote session's write executes the SAME fixed
+    template against the requesting machine's OfficeMCP bridge in ONE
+    deterministic sidecar call (no inner agent turn), with the identity gate
+    armed in the payload and the audit naming the target."""
+    calls = _fake_office_at(monkeypatch)
     with respx.mock(base_url=HERMES_BASE, assert_all_called=False):
         srv, _cfg = _server(tmp_path, monkeypatch)
         out = call(srv, "doc_write_v2",
                    {"text": "hello raymond", "conversation_id": "c1",
                     "name": "hello_raymond",
                     "client_origin": REMOTE_IP})
-    assert out["status"] == "blocked"
-    assert "local-only" in out["reason"]
-    assert REMOTE_NAME in out["reason"]
-    assert "hermes_office_task" in out["reason"]
-    assert _Capture.url is None              # nothing dialed OfficeMCP at all
+    assert out["status"] == "ok", out
+    assert out["text_ok"] is True
+    assert len(calls) == 1
+    remote = calls[0]
+    assert remote["kind"] == "remote"
+    # the client's OfficeMCP bridge (registry office URL), never the host's
+    assert remote["base_url"] == REMOTE_CLIENT.office_bridge_url()
+    assert remote["base_url"] != "http://172.17.0.1:18888"
+    assert remote["tool"] == "RunPython"
+    data = json.loads(remote["arguments"]["data"])
+    assert data["target_host"] == REMOTE_NAME        # identity gate armed
+    assert data["text"] == "hello raymond"
     rows = _audit_rows(tmp_path)
-    assert rows[-1]["decision"] == "blocked"
     assert rows[-1]["operation"] == "doc-write-v2"
+    assert rows[-1]["decision"] == "executed"
     assert rows[-1]["target"] == REMOTE_NAME
 
 
-def test_doc_write_v2_local_session_passes_the_guard(tmp_path, monkeypatch):
-    """Unregistered/empty origin: the guard is transparent — the call proceeds
-    on the local path exactly as before (FR-002)."""
-    _Capture.install(monkeypatch)
+def test_doc_write_v2_local_keeps_the_persistent_session(tmp_path, monkeypatch):
+    """Unregistered/empty origin: byte-identical local path — the persistent
+    session (never call_at), no target_host in the payload, no audit target
+    (FR-002)."""
+    calls = _fake_office_at(monkeypatch)
     with respx.mock(base_url=HERMES_BASE, assert_all_called=False):
         srv, _cfg = _server(tmp_path, monkeypatch)
         out = call(srv, "doc_write_v2",
                    {"text": "hello raymond", "conversation_id": "c1"})
-    assert out["status"] != "blocked"        # no guard refusal
-    assert _Capture.url is None              # local proxy path, not the guard
+    assert out["status"] == "ok"
+    assert len(calls) == 1
+    local = calls[0]
+    assert local["kind"] == "local"                 # persistent session
+    assert local["base_url"] == "http://172.17.0.1:18888"
+    data = json.loads(local["arguments"]["data"])
+    assert "target_host" not in data                 # no identity gate locally
+    row = _audit_rows(tmp_path)[-1]
+    assert row["decision"] == "executed"
+    assert "target" not in row
 
 
-def test_xls_ppt_doc_read_v2_refuse_remote_sessions(tmp_path, monkeypatch):
-    _Capture.install(monkeypatch)
+def test_xls_ppt_doc_read_v2_route_remote_sessions_to_the_client(tmp_path, monkeypatch):
+    """All four office-v2 tools route remote sessions through call_at to the
+    client's OfficeMCP bridge (xls via write_xls, ppt via write_ppt,
+    doc_read via read_doc)."""
+    calls = _fake_office_at(monkeypatch)
     with respx.mock(base_url=HERMES_BASE, assert_all_called=False):
         srv, _cfg = _server(tmp_path, monkeypatch)
         outs = [
@@ -635,7 +748,31 @@ def test_xls_ppt_doc_read_v2_refuse_remote_sessions(tmp_path, monkeypatch):
                   "client_origin": REMOTE_IP}),
         ]
     for out in outs:
-        assert out["status"] == "blocked"
-        assert "local-only" in out["reason"]
-        assert "hermes_office_task" in out["reason"]
-    assert _Capture.url is None
+        assert out["status"] == "ok", out
+    assert len(calls) == 3
+    for c in calls:
+        assert c["kind"] == "remote"
+        assert c["base_url"] == REMOTE_CLIENT.office_bridge_url()
+        assert json.loads(c["arguments"]["data"])["target_host"] == REMOTE_NAME
+    rows = [r for r in _audit_rows(tmp_path)
+            if str(r.get("operation", "")).endswith("-v2")]
+    assert len(rows) == 3
+    for row in rows:
+        assert row["decision"] == "executed"
+        assert row["target"] == REMOTE_NAME
+
+
+def test_v2_refused_resolution_still_refuses_honestly(tmp_path, monkeypatch):
+    """A disabled registry entry still refuses (never silent local fallback)
+    — the round-2 honesty is preserved for refusal paths."""
+    _fake_office_at(monkeypatch)
+    with respx.mock(base_url=HERMES_BASE, assert_all_called=False):
+        srv, _cfg = _server(tmp_path, monkeypatch, enabled=False)
+        out = call(srv, "doc_write_v2",
+                   {"text": "hello raymond", "conversation_id": "c1",
+                    "client_origin": REMOTE_IP})
+    assert out["status"] == "blocked"
+    assert "disabled" in out["reason"]
+    row = _audit_rows(tmp_path)[-1]
+    assert row["decision"] == "blocked"
+    assert row["target"] == REMOTE_NAME

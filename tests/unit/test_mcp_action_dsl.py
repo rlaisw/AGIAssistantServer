@@ -1525,21 +1525,17 @@ def test_office_v2_tools_bind_client_origin(graph: dict):
 
 
 def test_session_origin_condition_uses_a_renderable_variable_reference(graph: dict):
-    """no-open-microsoft-word (round 2): the routing condition must render the
-    ACTUAL client origin into the prompt — Dify's template parser only
-    substitutes {{#<node>.<var>#}}, never a bare {{#client_origin#}}, so a
-    bare-name condition is a literal placeholder the model cannot evaluate
-    (the exact recurrence root cause)."""
-    prompts = []
+    """no-open-microsoft-word (round 2): any prompt placeholder referencing
+    client_origin must be the renderable start-variable form — Dify's template
+    parser only substitutes {{#<node>.<var>#}}, never a bare
+    {{#client_origin#}} (a literal placeholder the model cannot evaluate)."""
     for n in graph["nodes"]:
         params = (n.get("data") or {}).get("agent_parameters") or {}
-        instruction = (params.get("instruction") or {}).get("value", "")
-        if instruction and "SESSION-ORIGIN CONDITION" in str(instruction):
-            prompts.append(str(instruction))
-    assert prompts, "no prompt carries the office v2 SESSION-ORIGIN CONDITION"
-    for prompt in prompts:
-        assert "{{#1776072202913.client_origin#}}" in prompt
-        assert "'{{#client_origin#}}' is empty" not in prompt
+        instruction = str((params.get("instruction") or {}).get("value", ""))
+        if "client_origin" in instruction:
+            assert "'{{#client_origin#}}'" not in instruction, (
+                "bare {{#client_origin#}} placeholder in a prompt — use the "
+                "renderable {{#1776072202913.client_origin#}} form")
 
 
 def test_start_node_exposes_optional_client_origin_input(graph: dict):
@@ -1568,21 +1564,24 @@ def test_prompt_requires_client_origin_passthrough(graph: dict, node_id: str):
 
 # --------------------------------------------- no-open-microsoft-word (2026-11-28)
 
-def test_office_v2_fast_path_is_conditioned_on_empty_client_origin(graph: dict):
-    """no-open-microsoft-word: the office v2 fast path applies ONLY to local
-    sessions — the routing prompt must condition it on empty client_origin so
-    a remote session routes Office requests to the remote-targeted
-    hermes_office_task lane instead of writing on the host."""
+def test_office_v2_routing_is_remote_native_round4(graph: dict):
+    """no-open-microsoft-word round 4 (very-long-long-time-to-answer-back):
+    the office v2 fast paths are REMOTE-NATIVE — the routing condition routes
+    simple literal writes to them from EVERY session (remote included, they
+    are the fast path); the round-2 'never call *_v2 when remote' prohibition
+    is retired."""
     prompts = []
     for n in graph["nodes"]:
         params = (n.get("data") or {}).get("agent_parameters") or {}
         instruction = (params.get("instruction") or {}).get("value", "")
-        if instruction and "SIMPLE literal WRITES" in str(instruction):
+        if instruction and "SESSION-ORIGIN CONDITION" in str(instruction):
             prompts.append(str(instruction))
-    assert prompts, "no prompt carries the office v2 fast-path rules"
+    assert prompts, "no prompt carries the office v2 SESSION-ORIGIN CONDITION"
     for prompt in prompts:
-        assert "SESSION-ORIGIN CONDITION (spec 053" in prompt
-        assert "{{#1776072202913.client_origin#}}" in prompt
+        assert "remote-native" in prompt
+        assert "FAST path" in prompt
+        assert "route simple literal writes" in prompt
+        # retired round-2 prohibition — must never come back
+        assert "Never call a *_v2 office tool when" not in prompt
+        # the round-2 lesson stands everywhere: no bare unsubstitutable placeholder
         assert "'{{#client_origin#}}'" not in prompt
-        assert "hermes_office_task(task, conversation_id)" in prompt
-        assert "Never call a *_v2 office tool when" in prompt

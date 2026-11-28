@@ -584,11 +584,20 @@ enabled = true
   forwarded chain — the deployment in front of the Chat UI must set
   `X-Forwarded-For` (and strip client-supplied values) or every session
   keeps the local default.
-- **Scope**: exactly the six desktop tools (`hermes_file_task`,
-  `hermes_launch_app`, `hermes_office_task`, `hermes_run_command`,
-  `hermes_run_powershell`, `mcp_action`) carry `client_origin`. The
-  applet lanes (`windows_mcp_*`), office v2, browser lanes, and PPT lanes
-  stay local. The **file lane refuses remote targets honestly** (it operates
-  on the host-mounted `/mnt/c` root and cannot follow another machine).
+- **Scope** (amended 2026-11-28, rounds 3–4): ten tools carry `client_origin` —
+  the six desktop tools (`hermes_file_task`, `hermes_launch_app`,
+  `hermes_office_task`, `hermes_run_command`, `hermes_run_powershell`,
+  `mcp_action`) plus the four office-v2 fast paths
+  (`doc_write_v2`/`xls_write_v2`/`ppt_write_v2`/`doc_read_v2`), which are
+  **REMOTE-NATIVE**: a remote session's v2 call executes the same fixed
+  template against the requesting machine's OfficeMCP bridge as ONE
+  deterministic sidecar call (`office_lanes.proxy.call_at`, identity gate in
+  the payload) — simple remote Office writes measure seconds (owner-attested
+  ~10 s end-to-end; NEVER route them through the agent lane, which measured
+  84.9–308 s). The **file lane routes remote targets** via the agent's
+  per-client FileSystem tools (T024); the applet lanes (`windows_mcp_*`),
+  browser lanes, and PPT lanes stay local.
 - Acceptance (owner-present, from the registered machine): see
-  `specs/053-remote-client-callback/quickstart.md`.
+  `specs/053-remote-client-callback/quickstart.md` — **owner-attested
+  2026-11-28**: Word/Excel/PowerPoint from the client at ~10 s average
+  (audit rows 1.7/3.1/2.3 s, `target: a301-11120`).

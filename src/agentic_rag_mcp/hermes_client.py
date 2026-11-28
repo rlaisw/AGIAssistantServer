@@ -329,6 +329,26 @@ def targeted_instructions(base: str, resolution, *,
         f"Office work on {client.name} uses the tools from server "
         f"OfficeMCP-{client.name} (names {office_prefix}*) — the local "
         f"OfficeMCP tools act on a different machine.\n" if office else "")
+    fast_path = (
+        "\nSINGLE-PAYLOAD FAST PATH (very-long-long-time-to-answer-back, "
+        "2026-11-28 — binding for simple literal writes): do NOT walk the "
+        "write as separate tool calls (probe, canary, attach, type, save, "
+        "read-back) — each round-trip costs reasoning time and the remote "
+        "turns then take minutes. Do ONE combined payload: a single "
+        f"{office_prefix}Write or RunPython call whose code, IN ORDER: "
+        "(1) first line asserts the machine identity — read COMPUTERNAME, "
+        "and if it does not equal "
+        f"\"{client.name}\" (case-insensitive) stop and report TASK: FAILED "
+        "with the observed name; (2) attach or create the target document; "
+        "(3) type the exact literal text; (4) save to the named/default "
+        "folder; (5) close and re-open the saved file FROM DISK and read "
+        "its text back; (6) report every sub-stage in one message with the "
+        "STEP markers and TASK: COMPLETED/FAILED. All honesty gates "
+        "(identity, literal match, disk read-back) ride INSIDE the payload "
+        "— they are not removed, only coalesced. Channel canaries are "
+        "needed ONLY if a call arrives with its arguments stripped (then "
+        "follow the RECOVERY OVERRIDE below and retry the same combined "
+        "payload once)." if office else "")
     remote_note = (
         "\n\nREMOTE TARGET (spec 053): the Windows computer for this task is "
         f"the REMOTE machine \"{client.name}\" — NOT the machine you are "
@@ -340,8 +360,9 @@ def targeted_instructions(base: str, resolution, *,
         f"{win_prefix}App to launch/focus apps, {win_prefix}Type and "
         f"{win_prefix}Click for keyboard/mouse, {win_prefix}PowerShell for "
         f"commands, {win_prefix}Process for process listings. "
-        + office_line +
-        "Everything else — the attestation protocol, USER_CONTROL consent "
+        + office_line
+        + fast_path
+        + "Everything else — the attestation protocol, USER_CONTROL consent "
         "waits, output bounding — applies unchanged, on that machine. If "
         f"the {win_prefix}* tools error as unreachable, report TASK: FAILED "
         "with that reason honestly and do nothing."

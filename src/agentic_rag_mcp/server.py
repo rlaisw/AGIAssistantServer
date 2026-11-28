@@ -830,32 +830,25 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
     # remote file tasks through the agent lane's per-client FileSystem tools;
     # every remote refusal now rides _remote_refusal (Constitution V)
 
-    def _v2_remote_guard(operation: str, client_origin: str,
-                          conversation_id: str = "") -> dict | None:
-        """no-open-microsoft-word (round 2, 2026-11-28): the office v2 fast
-        paths are HOST-LOCAL — a remote session's v2 call would write on the
-        WRONG machine, so refuse honestly and name the correct lane. Returns
-        None when the call may proceed (local/unregistered session)."""
+    def _v2_route(operation: str, client_origin: str,
+                  conversation_id: str = ""
+                  ) -> tuple[str | None, str | None, dict | None]:
+        """Round 4 (very-long-long-time-to-answer-back, 2026-11-28): the
+        office v2 tools are REMOTE-NATIVE — a remote session executes the
+        SAME fixed template against the requesting machine's OfficeMCP
+        bridge as ONE deterministic sidecar call (identity gate armed in the
+        payload), replacing both the round-2 refusal and the agent-lane
+        detour that measured 84.9-308 s per remote write. Only a refused
+        resolution (disabled/broken registry) still refuses. Returns
+        (base_url, target_host, refusal)."""
         resolution = _client_resolution(client_origin)
         if resolution.status == "refused":
-            return _remote_refusal(operation, resolution,
-                                   conversation_id=conversation_id or None)
-        if resolution.status != "remote":
-            return None
-        client = resolution.client
-        reason = (
-            f"refused: this session comes from the REMOTE machine "
-            f"\"{client.name}\" and the office v2 fast path is local-only — "
-            f"calling it would write on the WRONG machine, so nothing ran. "
-            f"Route the Office request through hermes_office_task(task, "
-            f"conversation_id) instead — that lane acts on the requesting "
-            f"machine's OfficeMCP.")
-        HermesAudit(cfg.hermes_audit_path).write_attempt(
-            decision="blocked", operation=operation,
-            normalized_path=None, allowed_root="",
-            reason=reason, conversation_id=conversation_id or None,
-            target=resolution.audit_name)
-        return {"status": "blocked", "reason": reason}
+            return None, None, _remote_refusal(
+                operation, resolution, conversation_id=conversation_id or None)
+        if resolution.status == "remote":
+            return (resolution.client.office_bridge_url(),
+                    resolution.client.name, None)
+        return None, None, None
 
     # spec 034 — the PowerShell lane's never-list gate + pending-draft state
     from .hermes_powershell_gate import gate_powershell
@@ -2141,18 +2134,22 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         requests; for document EDITS, multi-step work, or email
         compose->confirm->send use hermes_office_task instead. Returns
         {status, path, size, existed, text_ok} — relay honestly.
+        A remote session (client_origin) executes the SAME one-shot write
+        on the REQUESTING machine's OfficeMCP (identity-gated).
         conversation_id required (audited).
         """
-        guard = _v2_remote_guard("doc-write-v2", client_origin,
-                                 conversation_id)
-        if guard is not None:
-            return guard
+        base_url, target_host, refusal = _v2_route(
+            "doc-write-v2", client_origin, conversation_id)
+        if refusal is not None:
+            return refusal
         audit = HermesAudit(cfg.hermes_audit_path)
         t0 = time.monotonic()
         docname = _doc_name(name, text)
         root = "C:\\OfficeMCP"
         try:
-            out = get_office_proxy().write_doc(text, docname, root)
+            out = get_office_proxy().write_doc(
+                text, docname, root,
+                base_url=base_url, target_host=target_host)
         except Exception as exc:  # noqa: BLE001 — honest envelope on every failure
             out = {"status": "error",
                    "reason": f"error:office-lane-unavailable — OfficeMCP is "
@@ -2165,7 +2162,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             outcome=f"{docname}: " + str(out)[:250],
             reason=None if out.get("status") == "ok" else out.get("reason"),
             conversation_id=conversation_id,
-            duration_s=time.monotonic() - t0)
+            duration_s=time.monotonic() - t0,
+            target=target_host or None)
         if out.get("status") != "ok":
             return {"status": "error", "reason": out.get("reason")}
         replaced = bool(out.get("existed"))
@@ -2184,17 +2182,21 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         .docx from the default Office work folder, return its text (up to
         ~4000 chars) and size — no modification, nothing left open. Unknown
         name -> honest not-found. Use to verify or report a document's
-        content. conversation_id required (audited).
+        content. A remote session (client_origin) reads the REQUESTING
+        machine's document (identity-gated). conversation_id required
+        (audited).
         """
-        guard = _v2_remote_guard("doc-read-v2", client_origin,
-                                 conversation_id)
-        if guard is not None:
-            return guard
+        base_url, target_host, refusal = _v2_route(
+            "doc-read-v2", client_origin, conversation_id)
+        if refusal is not None:
+            return refusal
         audit = HermesAudit(cfg.hermes_audit_path)
         t0 = time.monotonic()
         docname = _doc_name(name, "read")
         try:
-            out = get_office_proxy().read_doc(docname, "C:\\OfficeMCP")
+            out = get_office_proxy().read_doc(
+                docname, "C:\\OfficeMCP",
+                base_url=base_url, target_host=target_host)
         except Exception as exc:  # noqa: BLE001
             out = {"status": "error",
                    "reason": f"error:office-lane-unavailable — OfficeMCP is "
@@ -2205,7 +2207,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             outcome=f"{docname}: {str(out)[:200]}",
             reason=None if out.get("status") == "ok" else out.get("reason"),
             conversation_id=conversation_id,
-            duration_s=time.monotonic() - t0)
+            duration_s=time.monotonic() - t0,
+            target=target_host or None)
         if out.get("status") != "ok":
             return {"status": "error", "reason": out.get("reason")}
         return {"status": "ok", "name": docname, "size": out.get("size"),
@@ -2242,6 +2245,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         deterministic call. Overwrites reported honestly (created/REPLACED).
         Use for simple 'open Excel and write X in cell Y' requests; for
         formulas, edits, or existing-file surgery use hermes_office_task.
+        A remote session (client_origin) executes the SAME one-shot write
+        on the REQUESTING machine's OfficeMCP (identity-gated).
         conversation_id required (audited).
         """
         audit = HermesAudit(cfg.hermes_audit_path)
@@ -2260,15 +2265,16 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                     "reason": (f"rejected: cells must be A1-style addresses "
                                f"with literal text values (no '=' formulas); "
                                f"invalid: {bad_cells[:5]}")}
-        guard = _v2_remote_guard("xls-write-v2", client_origin,
-                                 conversation_id)
-        if guard is not None:
-            return guard
+        base_url, target_host, refusal = _v2_route(
+            "xls-write-v2", client_origin, conversation_id)
+        if refusal is not None:
+            return refusal
         docname = _xls_name(name)
         try:
             out = get_office_proxy().write_xls(
                 {str(k): str(v) for k, v in (cells or {}).items()},
-                docname, "C:\\OfficeMCP")
+                docname, "C:\\OfficeMCP",
+                base_url=base_url, target_host=target_host)
         except Exception as exc:  # noqa: BLE001
             out = {"status": "error",
                    "reason": f"error:office-lane-unavailable — OfficeMCP is "
@@ -2279,7 +2285,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             outcome=f"{docname}: {str(out)[:250]}",
             reason=None if out.get("status") == "ok" else out.get("reason"),
             conversation_id=conversation_id,
-            duration_s=time.monotonic() - t0)
+            duration_s=time.monotonic() - t0,
+            target=target_host or None)
         if out.get("status") != "ok":
             return {"status": "error", "reason": out.get("reason")}
         replaced = bool(out.get("existed"))
@@ -2312,19 +2319,22 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         presentation open, and bring PowerPoint FULL-SCREEN to the FRONT —
         one deterministic call. Overwrites reported honestly. Use for simple
         'open PowerPoint and make a slide titled X' requests; multi-slide
-        decks or edits use hermes_office_task. conversation_id required
+        decks or edits use hermes_office_task. A remote session
+        (client_origin) executes the SAME one-shot write on the REQUESTING
+        machine's OfficeMCP (identity-gated). conversation_id required
         (audited).
         """
-        guard = _v2_remote_guard("ppt-write-v2", client_origin,
-                                 conversation_id)
-        if guard is not None:
-            return guard
+        base_url, target_host, refusal = _v2_route(
+            "ppt-write-v2", client_origin, conversation_id)
+        if refusal is not None:
+            return refusal
         audit = HermesAudit(cfg.hermes_audit_path)
         t0 = time.monotonic()
         docname = _ppt_name(name, title)
         try:
-            out = get_office_proxy().write_ppt(title, text, docname,
-                                                 "C:\\OfficeMCP")
+            out = get_office_proxy().write_ppt(
+                title, text, docname, "C:\\OfficeMCP",
+                base_url=base_url, target_host=target_host)
         except Exception as exc:  # noqa: BLE001
             out = {"status": "error",
                    "reason": f"error:office-lane-unavailable — OfficeMCP is "
@@ -2335,7 +2345,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             outcome=f"{docname}: {str(out)[:250]}",
             reason=None if out.get("status") == "ok" else out.get("reason"),
             conversation_id=conversation_id,
-            duration_s=time.monotonic() - t0)
+            duration_s=time.monotonic() - t0,
+            target=target_host or None)
         if out.get("status") != "ok":
             return {"status": "error", "reason": out.get("reason")}
         replaced = bool(out.get("existed"))
