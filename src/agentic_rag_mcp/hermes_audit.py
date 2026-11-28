@@ -35,7 +35,8 @@ class HermesAudit:
                       reason: str | None = None, outcome: str | None = None,
                       duration_s: float | None = None,
                       timing: dict | None = None,
-                      conversation_id: str | None = None) -> None:
+                      conversation_id: str | None = None,
+                      target: str | None = None) -> None:
         if decision not in _DECISIONS:
             raise ValueError(f"decision must be one of {_DECISIONS}, got {decision!r}")
         # after-the-task-was-done (2026-11-14): the single funnel every lane
@@ -54,6 +55,12 @@ class HermesAudit:
         # legacy entries without it stay valid, callers that omit it unchanged
         if conversation_id:
             entry["conversation_id"] = conversation_id
+        # spec 053 (FR-007/FR-008): the machine the attempt targeted —
+        # additive, emitted only when a resolution named one (a remote
+        # target or its refusal); empty-origin local-default attempts keep
+        # today's byte-identical rows (FR-002)
+        if target:
+            entry["target"] = target
         if decision == "executed":
             entry["outcome"] = outcome
         else:

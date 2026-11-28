@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Project — AGI Chat (AgenticRAG Chat UI)
 
-Chatbot-UI-style frontend for the Dify "AgenticRAG" chatflow. `app/api/chat/route.ts` proxies `POST /api/chat` → Dify `POST {DIFY_API_BASE_URL}/chat-messages` (streaming SSE re-emitted as line-delimited JSON: chunk · reasoning · replace · sources · ping · done). The API key lives in `.env.local` (git-ignored) and stays server-side.
+Chatbot-UI-style frontend for the Dify "AgenticRAG" chatflow. `app/api/chat/route.ts` proxies `POST /api/chat` → Dify `POST {DIFY_API_BASE_URL}/chat-messages` (streaming SSE re-emitted as line-delimited JSON: chunk · reasoning · replace · sources · ping · done). The API key lives in `.env.local` (git-ignored) and stays server-side. Every chat call also derives the browser's origin server-side from the trusted `X-Forwarded-For` chain and forwards it as the `client_origin` input (spec 053 — never read from the request body, pinned by `route.test.ts`), which routes desktop actions to the machine the session comes from; empty/unregistered origin keeps the local-desktop default.
 
 - `app/page.tsx` — the whole chat app (client component): sidebar, streaming bubbles, 100 ms throttled state flushes, `parseAnswer` think-tag stripping, 120 s connection watchdog, theme switcher
 - `components/markdown.tsx` — react-markdown (GFM + breaks) mapped to shadcn elements; images render inline; infographic links (`/infographics/` URL family) render with a 📌 and blue text (spec 046, `lib/infographic-link.ts`); deck links (`/exports/…pptx` or `/decks/…/` URL families, via `lib/deck-url.ts`) render as the action bar (`components/deck-actions.tsx` — ⬇ Download / 👁 Preview-Edit)

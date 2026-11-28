@@ -13,6 +13,7 @@ import binascii
 import os
 import re
 import time
+from contextvars import ContextVar
 from dataclasses import dataclass
 
 from mcp import ClientSession
@@ -26,6 +27,22 @@ PROBE_TIMEOUT_S = 2.0
 TEXT_BOUND = 4000
 _IMAGE_BYTES_BOUND = 10 * 1024 * 1024
 _IMAGE_BASE64_BOUND = 4 * ((_IMAGE_BYTES_BOUND + 2) // 3)
+
+# spec 053: the per-call Windows-MCP bridge target. Empty (the default) keeps
+# today's byte-identical local transport; a resolved remote client sets it
+# for exactly the duration of that call tree, so concurrent conversations
+# each reach only their own machine.
+_bridge_url: ContextVar[str | None] = ContextVar("bridge_url", default=None)
+
+
+def bridge_target(url: str | None):
+    """Bind the current call tree's Windows-MCP bridge; returns a token for
+    `bridge_reset(token)` in the caller's finally."""
+    return _bridge_url.set(url or None)
+
+
+def bridge_reset(token) -> None:
+    _bridge_url.reset(token)
 
 
 @dataclass(frozen=True)
@@ -211,18 +228,21 @@ def render_cpu_scale(text: str, processors: int) -> str:
     return out
 
 
-def _unavailable(exc: Exception) -> str:
+def _unavailable(exc: Exception, url: str = BRIDGE_SSE_URL) -> str:
     return (f"error:windows-mcp-lane-unavailable — the Windows-MCP "
-            f"service ({BRIDGE_SSE_URL}) is unreachable "
+            f"service ({url}) is unreachable "
             f"({exc.__class__.__name__}); recover with {_RECOVERY}")
 
 
 async def call_tool(tool: str, args: dict, conversation_id: str,
                     audit: HermesAudit | None = None, *,
                     include_images: bool = False,
-                    consent_attempts: int = 8) -> dict:
+                    consent_attempts: int = 8,
+                    bridge_url: str | None = None) -> dict:
     """One consented tool call through the repaired lane. Every path —
-    executed, blocked, error — audits exactly one row."""
+    executed, blocked, error — audits exactly one row. `bridge_url`/the
+    spec-053 context target select the machine this call acts on; both
+    empty keep today's local transport byte-identical (FR-002)."""
     t0 = time.monotonic()
     ok, reason = validate_args(tool, args)
     if not ok:
@@ -254,8 +274,9 @@ async def call_tool(tool: str, args: dict, conversation_id: str,
                                 conversation_id=conversation_id,
                                 duration_s=time.monotonic() - t0)
         return {"status": "blocked", "reason": reason}
+    target_url = bridge_url or _bridge_url.get() or BRIDGE_SSE_URL
     try:
-        async with sse_client(BRIDGE_SSE_URL, headers=_headers()) \
+        async with sse_client(target_url, headers=_headers()) \
                 as (read, write), \
                 ClientSession(read, write) as session:
                 await session.initialize()
@@ -346,7 +367,7 @@ async def call_tool(tool: str, args: dict, conversation_id: str,
                 return envelope
     except Exception as exc:  # noqa: BLE001 — every failure mode is one
         # honest envelope, the house FR-013 pattern shared by all lanes
-        reason = _unavailable(exc)
+        reason = _unavailable(exc, target_url)
         if audit:
             audit.write_attempt(decision="error", operation=_op(tool),
                                 normalized_path=None, allowed_root="",

@@ -92,7 +92,11 @@ doc = word.Documents.Add()
 doc.Content.Text = d['text']
 doc.SaveAs2(path)
 size = os.path.getsize(path)
-ok = d['text'].strip() in doc.Content.Text.strip()
+# no-open-microsoft-word (2026-11-28): Word COM returns paragraph marks as
+# CR, not LF — normalize line endings on both sides of the containment check
+# or every multi-line write fails verification
+ok = (d['text'].strip().replace('\\n', '\\r')
+      in doc.Content.Text.strip().replace('\\n', '\\r'))
 # owner request 2026-11-13: when the write completes, Word goes FULL-SCREEN
 # and comes to the FRONT (the playwright lesson: the ALT tap clears the
 # foreground lock the RDP client holds). Best-effort — never fails the write.
@@ -697,9 +701,18 @@ class OfficeProxy:
             return {"status": "error",
                     "reason": f"error:office-v2 malformed result — {out['text'][:200]}"}
         if not payload.get("text_ok"):
+            # no-open-microsoft-word (2026-11-28): the template writes and
+            # leaves the document open BEFORE verifying — the error envelope
+            # must disclose the partial write (path/existed/open), never let
+            # the relay infer "nothing was written"
             return {"status": "error",
                     "reason": "error:office-v2 verification failed — the "
-                              "saved document does not contain the literal text"}
+                              "saved document does not contain the literal "
+                              "text (partial write: the file WAS saved and "
+                              "left open)",
+                    "path": str(payload.get("path", ""))[:300],
+                    "existed": bool(payload.get("existed", False)),
+                    "open_docs": payload.get("open_docs")}
         return {"status": "ok", **payload}
 
     def write_xls(self, cells: dict, name: str, root: str) -> dict:

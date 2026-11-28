@@ -7,7 +7,13 @@ import inspect
 import time
 
 from ..office_lanes.proxy import OfficeProxy
-from ..windows_mcp.client import CapturedImage, call_tool
+from ..remote_clients import TargetResolution
+from ..windows_mcp.client import (
+    CapturedImage,
+    bridge_reset,
+    bridge_target,
+    call_tool,
+)
 from ..windows_mcp.open import open_settings
 from .actions import parse_marked_json
 from .health import HEALTH_ACTION_ID
@@ -400,6 +406,7 @@ class McpActionService:
         reports=None,
         audit=None,
         clock=None,
+        resolver=None,
     ):
         self.store = store if store is not None else ProposalStore()
         self.actions = actions
@@ -411,6 +418,9 @@ class McpActionService:
         self.audit = audit
         self._clock = clock if clock is not None else time.monotonic
         self._desktop_lock = asyncio.Lock()
+        # spec 053: session-origin resolver (server.py injects
+        # _client_resolution) — None keeps every call local-default
+        self.resolver = resolver
 
     async def handle(
         self,
@@ -420,9 +430,11 @@ class McpActionService:
         query="",
         action_id="",
         parameters=None,
+        client_origin: str = "",
     ) -> dict:
         """Prepare, cancel, or execute a proposal; audit never changes the outcome."""
         started = self._clock()
+        resolution = self._resolve_target(client_origin)
         try:
             result = await self._handle(
                 phase,
@@ -431,13 +443,32 @@ class McpActionService:
                 query,
                 action_id,
                 parameters,
+                resolution,
             )
         except ValueError:
             result = {"status": "error", "reason": "The action or parameters are invalid."}
         except Exception:  # noqa: BLE001 - public tool boundary must sanitize every failure
             result = {"status": "error", "reason": _INTERNAL_ERROR}
-        self._write_audit(phase, conversation_id, result, started)
+        self._write_audit(phase, conversation_id, result, started,
+                           target=resolution.audit_name)
         return result
+
+    def _resolve_target(self, client_origin: str) -> TargetResolution:
+        """The one spec-053 routing decision per call (FR-006: a refused or
+        unreachable machine NEVER falls back to another machine)."""
+        if self.resolver is None:
+            return TargetResolution(status="local")
+        try:
+            resolution = self.resolver(client_origin)
+        except Exception:  # noqa: BLE001 - a broken resolver refuses honestly
+            resolution = TargetResolution(
+                status="refused",
+                reason=("refused: the remote-client target could not be "
+                        "resolved — nothing ran on any machine"),
+            )
+        if resolution.status not in {"local", "remote", "refused"}:
+            return TargetResolution(status="local")
+        return resolution
 
     async def _handle(
         self,
@@ -447,7 +478,12 @@ class McpActionService:
         query,
         action_id,
         parameters,
+        resolution: TargetResolution,
     ) -> dict:
+        if resolution.status == "refused":
+            # spec 053 (FR-006): a refused target NEVER re-targets another
+            # machine — nothing runs anywhere, and the reason says so
+            return {"status": "blocked", "reason": resolution.reason}
         if phase not in {"draft", "confirm", "cancel"}:
             return {"status": "error", "reason": "phase must be draft, confirm, or cancel."}
         if not isinstance(conversation_id, str) or not conversation_id.strip():
@@ -466,6 +502,7 @@ class McpActionService:
                 query,
                 action_id,
                 parameters,
+                resolution,
             )
         return await self._draft(
             conversation_id,
@@ -473,6 +510,7 @@ class McpActionService:
             action_id,
             parameters,
             query,
+            resolution,
         )
 
     async def _resolve(
@@ -483,6 +521,7 @@ class McpActionService:
         query,
         action_id,
         parameters,
+        resolution: TargetResolution,
     ) -> dict:
         if action_id != "":
             return {
@@ -510,10 +549,22 @@ class McpActionService:
                 "status": "blocked",
                 "reason": "Execution is blocked until the live execution gate is approved.",
             }
+        # spec 053 edge case: the proposal's target machine is BOUND AT DRAFT
+        # TIME — a confirm arriving from a session resolved to a different
+        # machine is an unrelated response and never executes
+        if decision.proposal.target_name != resolution.audit_name:
+            return {
+                "status": "blocked",
+                "reason": (
+                    "The confirmation did not come from the machine the proposal "
+                    "targets, so nothing executed. Ask again from that machine."
+                ),
+            }
         return await self._execute(
             decision.proposal,
             conversation_id,
             queued_at,
+            resolution,
         )
 
     async def _draft(
@@ -523,7 +574,9 @@ class McpActionService:
         action_id,
         parameters,
         query="",
+        resolution: TargetResolution | None = None,
     ) -> dict:
+        resolution = resolution or TargetResolution(status="local")
         pending = self.store.peek(conversation_id)
         if (
             pending is not None
@@ -561,6 +614,7 @@ class McpActionService:
                 _effect(action_id, {}),
                 dialogue_count,
                 caveats=["The report may contain sensitive system and reliability details."],
+                target_name=resolution.audit_name,
             )
             return {
                 "status": "pending-confirmation",
@@ -604,14 +658,22 @@ class McpActionService:
         parameters = dict(parameters)
         caveats = []
         if self.actions is not None:
-            if action_id == _DEFAULT_PRINTER:
-                validation = await self.actions.validate_default_printer(
-                    parameters["printer"]
-                )
-            else:
-                validation = await self.actions.validate_word_printer_duplex(
-                    parameters["printer"], parameters["orientation"]
-                )
+            # spec 053: a draft validates against ITS target machine — the
+            # bridge context routes the read-back through the resolution
+            token = (bridge_target(resolution.client.bridge_url)
+                     if resolution.status == "remote" else None)
+            try:
+                if action_id == _DEFAULT_PRINTER:
+                    validation = await self.actions.validate_default_printer(
+                        parameters["printer"]
+                    )
+                else:
+                    validation = await self.actions.validate_word_printer_duplex(
+                        parameters["printer"], parameters["orientation"]
+                    )
+            finally:
+                if token is not None:
+                    bridge_reset(token)
             if not isinstance(validation, dict) or validation.get("status") != "ok":
                 reason = (
                     validation.get("reason") if isinstance(validation, dict) else None
@@ -635,6 +697,7 @@ class McpActionService:
             _effect(action_id, parameters),
             dialogue_count,
             caveats=caveats,
+            target_name=resolution.audit_name,
         )
         return {
             "status": "pending-confirmation",
@@ -645,7 +708,23 @@ class McpActionService:
             "caveats": proposal.caveats,
         }
 
-    async def _execute(self, proposal, conversation_id: str, queued_at: float) -> dict:
+    async def _execute(self, proposal, conversation_id: str, queued_at: float,
+                       resolution: TargetResolution | None = None) -> dict:
+        resolution = resolution or TargetResolution(status="local")
+        # spec 053: execution, verification, display checks, and capture all
+        # run against the PROPOSAL'S bound target machine (FR-009 evidence
+        # provenance) — _resolve already refused any cross-machine confirm
+        token = (bridge_target(resolution.client.bridge_url)
+                 if resolution.status == "remote" else None)
+        try:
+            return await self.__execute_locked(
+                proposal, conversation_id, queued_at)
+        finally:
+            if token is not None:
+                bridge_reset(token)
+
+    async def __execute_locked(self, proposal, conversation_id: str,
+                               queued_at: float) -> dict:
         async with self._desktop_lock:
             execution_started = self._clock()
             queue_wait_s = execution_started - queued_at
@@ -990,7 +1069,8 @@ class McpActionService:
             )
         return result
 
-    def _write_audit(self, phase, conversation_id, result: dict, started: float) -> None:
+    def _write_audit(self, phase, conversation_id, result: dict, started: float,
+                     target: str | None = None) -> None:
         if self.audit is None:
             return
         try:
@@ -1056,6 +1136,7 @@ class McpActionService:
                 ),
                 duration_s=max(0.0, self._clock() - started),
                 timing=timing if isinstance(timing, dict) else None,
+                target=target,
                 **kwargs,
             )
         except Exception:  # noqa: BLE001 - persistence failure cannot rewrite host truth

@@ -412,3 +412,48 @@ class TestWordPrintPreviewT036:
 
         assert len(posts) == 2
         assert [post["timeout"] for post in posts] == [180.0, 180.0]
+
+
+class TestWriteDocV2NoOpenMicrosoftWord:
+    """no-open-microsoft-word (2026-11-28): the v2 write verification must
+    normalize line endings (Word COM paragraphs are \\r), and a failed
+    verification must disclose the partial write (the file IS saved and
+    left open before verification runs)."""
+
+    def test_write_template_normalizes_line_endings_in_verification(self):
+        # both sides of the containment check normalized: \n -> \r
+        assert "replace('\\n', '\\r')" in _WRITE_TEMPLATE
+        assert "d['text'].strip().replace" in _WRITE_TEMPLATE
+
+    def _frame(self, payload: dict):
+        import json as _json
+        # live envelope: {"success":true, "output":"<json string>"}
+        return {"result": {"content": [
+            {"type": "text", "text": _json.dumps({
+                "success": True,
+                "output": _json.dumps(payload)})}]}}
+
+    def test_verification_failure_discloses_the_partial_write(self, monkeypatch):
+        proxy, _posts = _fake_http_proxy(monkeypatch, self._frame({
+            "path": "C:\\OfficeMCP\\hello raymond.docx", "size": 13418,
+            "existed": False, "text_ok": False, "open_docs": 1,
+            "fronted": True}))
+        out = proxy.write_doc("hello\nraymond", "hello raymond",
+                              "C:\\OfficeMCP")
+        assert out["status"] == "error"
+        assert "partial write" in out["reason"]
+        assert out["path"] == "C:\\OfficeMCP\\hello raymond.docx"
+        assert out["existed"] is False
+        assert out["open_docs"] == 1
+
+    def test_verification_ok_multi_line_payload_passes(self, monkeypatch):
+        proxy, posts = _fake_http_proxy(monkeypatch, self._frame({
+            "path": "C:\\OfficeMCP\\lines.docx", "size": 13325,
+            "existed": False, "text_ok": True, "open_docs": 1,
+            "fronted": True}))
+        out = proxy.write_doc("hello raymond\nhello raymond", "lines",
+                              "C:\\OfficeMCP")
+        assert out["status"] == "ok"
+        # the literal rides `data` (never agent-composed code)
+        sent = posts[0]["json"]["params"]["arguments"]["data"]
+        assert "hello raymond\\nhello raymond" in sent

@@ -138,6 +138,9 @@ class Config:
     hermes_allowed_root: Path = Path("/mnt/c/temp")
     hermes_office_root: str = "C:\\OfficeMCP"   # spec 030: gate containment root (Windows style)
     hermes_audit_path: Path = Path("~/.config/agentic-rag-mcp/hermes-mcp/audit.jsonl")
+    # spec 053: [remote_clients] — the remote-client registry (no credentials)
+    remote_clients_path: Path = Path(
+        "~/.config/agentic-rag-mcp/remote-clients.toml")
     # spec 036: [skill_manager] — shared skill store (server-side WSL)
     skill_db_path: Path = Path("~/.config/agentic-rag-mcp/hermes-mcp/skills.db")
     skill_vectordb_path: Path = Path("~/.config/agentic-rag-mcp/hermes-mcp/skill-vectors")
@@ -264,6 +267,11 @@ def load_config(path: Path | None = None) -> Config:
     )
     cfg.hermes_audit_path = Path(
         str(_get(raw, "hermes", "audit_path", default=str(cfg.hermes_audit_path)))
+    ).expanduser()
+    # spec 053: [remote_clients] registry path — read per call, no restart
+    cfg.remote_clients_path = Path(
+        str(_get(raw, "remote_clients", "path",
+                 default=str(cfg.remote_clients_path)))
     ).expanduser()
     # spec 036: [skill_manager] db_path / vectordb_path / min_rate / min_successes
     cfg.skill_db_path = Path(

@@ -66,8 +66,10 @@ def test_mcp_action_schema_is_additive_and_ask_schema_is_unchanged(server):
     assert "mcp_action" in by_name
     action_schema = by_name["mcp_action"].inputSchema
     properties = action_schema["properties"]
+    # spec 053: client_origin is additive and optional (never required)
     assert set(properties) == {
-        "phase", "conversation_id", "dialogue_count", "query", "action_id", "parameters",
+        "phase", "conversation_id", "dialogue_count", "query",
+        "action_id", "parameters", "client_origin",
     }
     assert set(action_schema["required"]) == {"phase", "conversation_id", "dialogue_count"}
     assert properties["phase"]["type"] == "string"
@@ -77,6 +79,7 @@ def test_mcp_action_schema_is_additive_and_ask_schema_is_unchanged(server):
     assert properties["query"] == {"default": "", "title": "Query", "type": "string"}
     assert properties["action_id"] == {"default": "", "title": "Action Id", "type": "string"}
     assert properties["parameters"]["default"] is None
+    assert properties["client_origin"]["default"] == ""
 
     # C05: adding the tool must not alter the established ask input contract.
     assert by_name["ask"].inputSchema == {
@@ -101,3 +104,25 @@ def test_mcp_action_schema_is_additive_and_ask_schema_is_unchanged(server):
         "title": "askArguments",
         "type": "object",
     }
+
+
+def test_client_origin_is_additive_on_exactly_the_desktop_lanes(server):
+    """Spec 053 (T010) + no-open-microsoft-word (round 2): the session-origin
+    argument reaches EXACTLY the six desktop tools (FR-001) plus the four
+    office-v2 fast-path tools (server-side remote guard) — no other tool
+    gains it — and it is optional everywhere with an empty-string default
+    (absent = today's local default, FR-002)."""
+    tools = asyncio.run(server.list_tools())
+    by_name = {tool.name: tool for tool in tools}
+    desktop = {"hermes_file_task", "hermes_launch_app", "hermes_office_task",
+               "hermes_run_command", "hermes_run_powershell", "mcp_action",
+               "doc_write_v2", "doc_read_v2", "xls_write_v2", "ppt_write_v2"}
+    carrying = {name for name, tool in by_name.items()
+                if isinstance(tool.inputSchema, dict)
+                and "client_origin" in tool.inputSchema.get("properties", {})}
+    assert carrying == desktop
+    for name in desktop:
+        schema = by_name[name].inputSchema
+        assert "client_origin" not in schema.get("required", [])
+        prop = schema["properties"]["client_origin"]
+        assert prop.get("default") == ""

@@ -511,3 +511,84 @@ now drive the Windows desktop/UI (Click/Type/Screenshot/App/Process/FileSystem/R
 > above the sidecar's 540 s honest envelope. A daemon **restart is not enough** — recreate
 > with `docker compose up -d plugin_daemon` (env only loads at container creation).
 > Re-check: `docker exec docker-plugin_daemon-1 env | grep MAX_`.
+
+## Remote Windows clients (spec 053 — remote-client callback)
+
+Every Hermes-lane desktop operation and every `mcp_action` procedure runs on
+the Windows machine the chat session **comes from** — not always the host.
+Routing is server-side, per call, from a TOML registry the operator owns:
+
+```toml
+# ~/.config/agentic-rag-mcp/remote-clients.toml  ([remote_clients] path in config.toml)
+[clients."192.168.1.42"]
+name = "raymond-office"                       # [a-z0-9-]+ — shown in answers + audit `target`
+bridge_url = "http://192.168.1.42:18800/sse"  # the client's WindowsMCP bridge
+enabled = true
+```
+
+- **How targeting works.** The Chat UI derives the browser's origin
+  server-side from the trusted `X-Forwarded-For` chain and forwards it as the
+  `client_origin` chat input; the sidecar matches it against the registry.
+  Empty/unregistered origin = today's local default, byte-identical (FR-002).
+  Disabled entry or broken registry = honest refusal naming the machine,
+  **never** a silent local fallback (FR-006). The registry holds **no
+  credentials**; extra fields (api_key, token, …) are refused, never ignored.
+- **No restart for edits** (FR-004): the file is read on every call — add /
+  disable / remove entries and the next request follows. Answers and the
+  audit attribute the registry `name` (never a raw IP).
+- **Client-side prerequisite** (operator contract, spec
+  `specs/053-remote-client-callback/contracts/targeting.md`): the registered
+  machine runs the same stack as the host — WindowsMCP + the office
+  automation service on the canonical local host, and bridges
+  `:18800/sse → :8800` (WindowsMCP) and `:18888/sse → :8888` (OfficeMCP),
+  LAN-reachable from the sidecar with the same canonical-Host discipline as
+  the host bridge. No new public-internet exposure (FR-010). Concrete
+  deployment on the client (as administrator; bridge script:
+  `services/client-bridge/bridge.py` — pure-stdlib Python, needs Python 3.9+):
+  ```powershell
+  # 1. copy services/client-bridge/bridge.py to the client, then:
+  py C:\ProgramData\agentic-rag\bridge\bridge.py          # run it now (test)
+  # 2. autostart on boot (survives reboots):
+  schtasks /create /tn "agentic-rag-port-bridge" /tr "py C:\ProgramData\agentic-rag\bridge\bridge.py" /sc onstart /rl limited /f
+  # 3. firewall — scope to the WSL host only (re-scope if the host IP changes):
+  New-NetFirewallRule -DisplayName "agentic-rag windows-mcp bridge" -Direction Inbound -Protocol TCP -LocalPort 18800 -RemoteAddress 10.161.141.94 -Action Allow
+  New-NetFirewallRule -DisplayName "agentic-rag officemcp bridge" -Direction Inbound -Protocol TCP -LocalPort 18888 -RemoteAddress 10.161.141.94 -Action Allow
+  ```
+- **Gateway registration (REQUIRED for the agent lanes)** — the Hermes
+  gateway agent needs real tools against the client's services; register
+  the client's bridges as gateway MCP servers in `~/.hermes/config.yaml`
+  (and every active `~/.hermes/profiles/*/config.yaml`), then restart the
+  gateway (`hermes --profile default gateway run`):
+  ```yaml
+  mcp_servers:
+    WindowsMCP-a301-11120:            # tool names: mcp__WindowsMCP_a301_11120__*
+      url: http://10.161.92.34:18800/sse
+      headers:
+        Host: 127.0.0.1:8800           # canonical Host — the service 400s without it
+      enabled: true
+    OfficeMCP-a301-11120:              # tool names: mcp__OfficeMCP_a301_11120__*
+      url: http://10.161.92.34:18888/sse
+      headers:
+        Host: 127.0.0.1:8888
+      enabled: true
+  ```
+  Verify from the gateway host after restart: ask the agent to list its
+  `mcp__WindowsMCP_a301_11120__*` tools. The sidecar's agent-lane
+  instructions name these tools (spec 053 targeted_instructions), so a
+  missing registration makes remote agent turns fail honestly (unreachable)
+  — never hang (bug `no-open-word-hangs-up`).
+  Verify from the WSL host: `curl -m 5 http://<client-ip>:18800/sse -H "Host: 127.0.0.1:8800"`
+  (or `.venv/bin/python -c "from agentic_rag_mcp.windows_mcp import health; print(health.probe_windows_mcp(url='http://<client-ip>:18800/sse'))"`)
+  — then re-run the T020 acceptance battery from that machine's browser.
+- **Reverse proxy note**: the origin is only observable through the trusted
+  forwarded chain — the deployment in front of the Chat UI must set
+  `X-Forwarded-For` (and strip client-supplied values) or every session
+  keeps the local default.
+- **Scope**: exactly the six desktop tools (`hermes_file_task`,
+  `hermes_launch_app`, `hermes_office_task`, `hermes_run_command`,
+  `hermes_run_powershell`, `mcp_action`) carry `client_origin`. The
+  applet lanes (`windows_mcp_*`), office v2, browser lanes, and PPT lanes
+  stay local. The **file lane refuses remote targets honestly** (it operates
+  on the host-mounted `/mnt/c` root and cannot follow another machine).
+- Acceptance (owner-present, from the registered machine): see
+  `specs/053-remote-client-callback/quickstart.md`.

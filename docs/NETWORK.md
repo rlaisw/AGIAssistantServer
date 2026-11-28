@@ -49,6 +49,14 @@ flowchart LR
     HERMES -- "native MCP (office, spec 030)" --> OFFMCP
     HERMES -- "MCP tools (App/Snapshot/<br/>mcp__WindowsMCP__PowerShell …)" --> WINMCP
 
+    subgraph RCLIENT["🖥️ REMOTE WINDOWS CLIENT (spec 053, e.g. a301-11120 @ 10.161.92.34)"]
+        CB1["client WindowsMCP bridge<br/>:18800 → 127.0.0.1:8800<br/>(firewall-scoped to the host)"]
+        CB2["client OfficeMCP bridge<br/>:18888 → 127.0.0.1:8888"]
+    end
+    SIDECAR -. "⑫ remote sessions: sidecar-direct<br/>(mcp_action/v2/file lanes)<br/>+ client_origin from ⑦'s XFF" .-> CB1
+    HERMES -. "⑬ remote agent lanes: per-client<br/>mcp__WindowsMCP_<name>__* tools<br/>(gateway mcp_servers); recovery ONLY<br/>via these bridges, never 127.0.0.1" .-> CB1
+    HERMES -.-> CB2
+
     style HOST fill:#fef7c3
     style DIFY fill:#dbeafe
     style RAG fill:#dcfce7
@@ -72,6 +80,8 @@ flowchart LR
 | ⑦ | You (browser) | Chat UI | `localhost:3000` | Host → Next.js dev/prod server |
 | ⑧ | Chat UI | Dify nginx | `http://localhost/v1/chat-messages` · `/v1/chat-messages/{task_id}/stop` (stop-generation, spec 027) · `/v1/conversations*` (history list, messages, delete — specs 014–015) (Bearer app key, server-side only) | Host → published port 80 — same entry door as ①, Service API path |
 | ⑨ | You (browser) | sidecar /exports | `http://localhost:28080/exports/<project>/<file>.pptx` | Host → published port — PPT-Master deck downloads (spec 009) |
+| ⑫ | **agentic-rag** | Remote Windows client bridges | `http://<client-ip>:18800/sse` (→ its `127.0.0.1:8800`) · `:18888/sse` (→ `:8888`) | Container → LAN client, only when the session's `client_origin` matches an enabled registry entry (`~/.config/agentic-rag-mcp/remote-clients.toml`, spec 053) — canonical-Host headers preserved by the client bridge (`services/client-bridge/bridge.py`); empty/unregistered origin keeps the host-local paths (⑨–⑪) byte-for-byte; disabled/broken registry → honest refusal, never silent host fallback |
+| ⑬ | Hermes agent | Remote client (via gateway `mcp_servers`) | per-client registered tools `mcp__WindowsMCP_<name>__*` / `mcp__OfficeMCP_<name>__*` | Remote agent turns name these tools (registration in `~/.hermes/config.yaml` + every profile config — REQUIRED part of client registration); a degraded gateway channel recovers ONLY via the client's bridges (⑫) — never `127.0.0.1` (the host) — and every remote write is gated on a `COMPUTERNAME` identity match |
 
 ## The two rules this encodes
 
@@ -92,7 +102,7 @@ flowchart LR
 | Sidecar → SearXNG | `http://searxng:28888` (config `[web.searxng] url`) | container DNS |
 | Host → SearXNG | `http://localhost:28888` | JSON API test: `/search?q=t&format=json` → 200 |
 | Browser → Chat UI | `http://localhost:3000` | Next.js (`ai-chat-landing/`) |
-| Chat UI → Dify Service API | `http://localhost/v1/chat-messages` · `/v1/conversations*` | proxied server-side in `ai-chat-landing/app/api/chat/route.ts` + `app/api/conversations/` (specs 014–015); key in `.env.local` |
+| Chat UI → Dify Service API | `http://localhost/v1/chat-messages` · `/v1/conversations*` | proxied server-side in `ai-chat-landing/app/api/chat/route.ts` + `app/api/conversations/` (specs 014–015); key in `.env.local`; the chat call derives the browser's origin from the trusted `X-Forwarded-For` chain and forwards it as the `client_origin` input (spec 053 — never read from the request body) |
 | Chat UI → Dify stop endpoint | `POST /v1/chat-messages/{task_id}/stop` | same-origin proxy in `ai-chat-landing/app/api/chat/stop/route.ts` (spec 027) — halts a generating turn; task id arrives via the additive `task` stream event; 404 → `no-task` (completion race = success) |
 | Chat UI → remote image hosts (PDF export) | arbitrary `http(s)` image URLs from answer markdown | same-origin fetch in `ai-chat-landing/app/api/image-proxy/route.ts` — the export rasterizer (html2canvas useCORS) drops ACAO-less remote images, so bytes are fetched server-side; image/* only, 10 MB cap, cloud-metadata IP blocked |
 | You → PPT-Master deck downloads | `http://localhost:28080/exports/<project>/<file>.pptx` | served by the sidecar wrapper; files under the ppt-master clone's `projects/<project>/exports/` |
@@ -101,6 +111,7 @@ flowchart LR
 | Sidecar → Hermes gateway | `http://172.17.0.1:8642/v1/responses` (config `[hermes]`) | docker0 gateway IP + bearer `API_SERVER_KEY`; stream-mode `/v1/responses` for cancellable turns; every Hermes-lane attempt audits in `~/.config/agentic-rag-mcp/hermes-mcp/audit.jsonl` (`operation` per lane: file/launch-app/office-task/run-command/run-powershell) with `duration_s`+`timing` |
 | Hermes agent → OfficeMCP | `http://127.0.0.1:8888/sse` (Windows host) | native MCP (spec 030); Office automation service — start `officemcp sse` on Windows |
 | Hermes agent → WindowsMCP | `http://127.0.0.1:8800/sse` (Windows host) | 21 tools (spec 029/033/034 executor: `mcp__WindowsMCP__PowerShell`, App, Snapshot, desktop tools); Scheduled Task `windows-mcp-server`; on gateway arg-strip the agent falls back to this direct channel (the sanctioned recovery) |
+| Sidecar → remote client WindowsMCP/OfficeMCP (spec 053) | `http://<client-ip>:18800/sse` · `http://<client-ip>:18888/sse` | remote sessions only (`client_origin` matched against `remote-clients.toml`); canonical `Host: 127.0.0.1:8800/8888` headers preserved by the client bridges; registry entry + bridges + firewall rules + gateway `mcp_servers` registration are all part of client registration — see `DEPLOY.md` |
 
 ## Troubleshooting quick hits
 
@@ -108,5 +119,7 @@ flowchart LR
 |---|---|---|
 | `agentic-rag:28080` refused from a container | Wrong path — internal port is 28080 | matrix ③ |
 | `localhost:8080` refused on host | Old port freed by alignment | use 28080 (matrix ⑤) |
+| Remote prompt runs on the host / no window on the client (spec 053) | Session origin not matched: registry entry missing, bridges down, or the routing condition didn't render | matrix ⑫⑬ + `DEPLOY.md` spec-053 section |
+| Remote answer hangs, no verdict | Pre-2026-11-28 v1 bug (agent drove the bridge manually); now: unreachable client tools → honest `TASK: FAILED` naming the machine | `.specify/bugs/no-open-word-hangs-up/` |
 | Dify "Cannot connect to MCP server" | SSRF allowlist missing | `DEPLOY.md` Step 4.2 |
 | Dify edit-save → 500 | Dify identifier-vs-UUID bug — delete + re-add | `DEPLOY.md` Step 4.5 |

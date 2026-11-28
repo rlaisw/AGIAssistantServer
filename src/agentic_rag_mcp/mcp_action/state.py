@@ -42,6 +42,11 @@ class Proposal:
     created_dialogue_count: int
     created_at_utc: datetime
     expires_at_monotonic: float
+    # spec 053: the registry name of the machine this proposal targets —
+    # bound at draft time; a confirm/cancel from a different target machine
+    # is an unrelated response and never executes (spec edge case). None =
+    # the local-default desktop.
+    target_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,12 +70,17 @@ class ProposalStore:
         effect: str,
         dialogue_count: int,
         caveats: list[str] | None = None,
+        target_name: str | None = None,
     ) -> Proposal:
         if not isinstance(conversation_id, str) or not conversation_id.strip():
             raise ValueError("conversation_id must be a non-empty string")
         if not self._valid_dialogue_count(dialogue_count):
             raise ValueError("dialogue_count must be an integer >= 0")
         validated = self._validate_parameters(action_id, parameters)
+        if target_name is not None and (
+            not isinstance(target_name, str) or not target_name.strip()
+        ):
+            raise ValueError("target_name must be a non-empty string or None")
         now = self._clock()
         proposal = Proposal(
             proposal_id=uuid4().hex,
@@ -82,6 +92,7 @@ class ProposalStore:
             created_dialogue_count=dialogue_count,
             created_at_utc=datetime.now(UTC),
             expires_at_monotonic=now + _TTL_SECONDS,
+            target_name=target_name,
         )
         with self._lock:
             self._remove_expired_locked(now)

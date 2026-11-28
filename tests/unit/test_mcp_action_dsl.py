@@ -1435,3 +1435,154 @@ def test_offline_honesty_blocks_health_repair_and_helpdesk_ticket_claims(graph: 
     assert guarded != answer
     assert "created a helpdesk ticket" not in guarded.casefold()
     assert "repaired the disk" not in guarded.casefold()
+
+
+# ------------------------------------------------------------- spec 053 T010b
+
+START_NODE_ID = "1776072202913"
+CLIENT_ORIGIN_SELECTOR = [START_NODE_ID, "client_origin"]
+HERMES_LANES = (
+    "hermes_file_task",
+    "hermes_launch_app",
+    "hermes_office_task",
+    "hermes_run_command",
+    "hermes_run_powershell",
+)
+# no-open-microsoft-word (round 2): the office v2 fast-path tools carry the
+# bound client_origin too — the server-side remote guard reads it
+OFFICE_V2_LANES = (
+    "doc_write_v2",
+    "doc_read_v2",
+    "xls_write_v2",
+    "ppt_write_v2",
+)
+
+
+def _binding(tool: dict, argument: str) -> dict:
+    binding = (tool.get("parameters") or {}).get(argument)
+    assert isinstance(binding, dict), (
+        f"{tool.get('tool_name')}.{argument} is not bound"
+    )
+    assert binding.get("auto") == 0, (
+        f"{tool.get('tool_name')}.{argument} must set auto: 0 or Dify leaves "
+        "the variable binding unapplied and the model supplies a literal"
+    )
+    value_binding = binding.get("value")
+    assert isinstance(value_binding, dict), (
+        f"{tool.get('tool_name')}.{argument} value must be a dict"
+    )
+    assert value_binding.get("type") == "variable", (
+        f"{tool.get('tool_name')}.{argument} must bind a Dify variable "
+        "selector — template constants break tool JSON parsing"
+    )
+    return value_binding
+
+
+@pytest.mark.parametrize("node_id", MCP_ACTION_AGENTS)
+def test_mcp_action_binds_client_origin_as_a_start_variable(graph: dict, node_id: str):
+    """Spec 053: client_origin rides the same variable-selector mechanism
+    as conversation_id — never a template constant (spec 047 invariant)."""
+    tool = _mcp_action_tool(_nodes(graph)[node_id])
+    value_binding = _binding(tool, "client_origin")
+    assert value_binding.get("value") == CLIENT_ORIGIN_SELECTOR, (
+        f"{node_id} mcp_action.client_origin must bind exactly "
+        f"{CLIENT_ORIGIN_SELECTOR!r}"
+    )
+
+
+def test_hermes_lanes_bind_client_origin_and_no_other_tool_gains_it(graph: dict):
+    """Spec 053 FR-001 + no-open-microsoft-word (round 2): the desktop tools
+    AND the office v2 fast-path tools carry the bound client_origin; nothing
+    else gains it."""
+    hermes_tools = {t.get("tool_name"): t for t in _tools(_nodes(graph)["hermes_agent"])}
+    for lane in HERMES_LANES:
+        value_binding = _binding(hermes_tools[lane], "client_origin")
+        assert value_binding.get("value") == CLIENT_ORIGIN_SELECTOR
+
+    desktop = set(HERMES_LANES) | set(OFFICE_V2_LANES) | {"mcp_action"}
+    for node in graph["nodes"]:
+        if "agent_parameters" not in node.get("data", {}):
+            continue
+        for tool in _tools(node):
+            name = tool.get("tool_name")
+            if name in desktop:
+                continue
+            assert "client_origin" not in (tool.get("parameters") or {}), (
+                f"{name} must NOT gain the client_origin argument (spec 053 "
+                "scope: exactly the six desktop tools + the four office v2 "
+                "fast-path tools)"
+            )
+
+
+def test_office_v2_tools_bind_client_origin(graph: dict):
+    """no-open-microsoft-word (round 2): the four office v2 fast-path tools
+    bind client_origin as a start-variable selector — the server-side remote
+    guard reads the bound value, never a model-composed literal."""
+    tools = {t.get("tool_name"): t for t in _tools(_nodes(graph)["hermes_agent"])}
+    for lane in OFFICE_V2_LANES:
+        value_binding = _binding(tools[lane], "client_origin")
+        assert value_binding.get("value") == CLIENT_ORIGIN_SELECTOR
+
+
+def test_session_origin_condition_uses_a_renderable_variable_reference(graph: dict):
+    """no-open-microsoft-word (round 2): the routing condition must render the
+    ACTUAL client origin into the prompt — Dify's template parser only
+    substitutes {{#<node>.<var>#}}, never a bare {{#client_origin#}}, so a
+    bare-name condition is a literal placeholder the model cannot evaluate
+    (the exact recurrence root cause)."""
+    prompts = []
+    for n in graph["nodes"]:
+        params = (n.get("data") or {}).get("agent_parameters") or {}
+        instruction = (params.get("instruction") or {}).get("value", "")
+        if instruction and "SESSION-ORIGIN CONDITION" in str(instruction):
+            prompts.append(str(instruction))
+    assert prompts, "no prompt carries the office v2 SESSION-ORIGIN CONDITION"
+    for prompt in prompts:
+        assert "{{#1776072202913.client_origin#}}" in prompt
+        assert "'{{#client_origin#}}' is empty" not in prompt
+
+
+def test_start_node_exposes_optional_client_origin_input(graph: dict):
+    """Spec 053: the origin is a Chat-UI-supplied start input — optional,
+    empty default (absent = today's local default, FR-002)."""
+    start = next(n for n in graph["nodes"] if n["data"].get("type") == "start")
+    variables = {v["variable"]: v for v in start["data"]["variables"]}
+    assert "client_origin" in variables
+    assert variables["client_origin"]["required"] is False
+    assert variables["client_origin"]["default"] == ""
+
+
+@pytest.mark.parametrize("node_id", MCP_ACTION_AGENTS)
+def test_prompt_requires_client_origin_passthrough(graph: dict, node_id: str):
+    """The routing prompt must tell the relay to pass client_origin verbatim
+    and never fake a remote execution (FR-005/FR-007). The reference must be
+    the RENDERABLE start-variable form (round 2): Dify only substitutes
+    {{#<node>.<var>#}}, so a bare {{#client_origin#}} is a literal placeholder
+    the model cannot evaluate."""
+    prompt = _prompt(_nodes(graph)[node_id])
+    assert "SESSION ORIGIN (spec 053)" in prompt
+    assert "{{#1776072202913.client_origin#}}" in prompt
+    assert "'{{#client_origin#}}'" not in prompt
+    assert "never claim a remote machine acted" in prompt
+
+
+# --------------------------------------------- no-open-microsoft-word (2026-11-28)
+
+def test_office_v2_fast_path_is_conditioned_on_empty_client_origin(graph: dict):
+    """no-open-microsoft-word: the office v2 fast path applies ONLY to local
+    sessions — the routing prompt must condition it on empty client_origin so
+    a remote session routes Office requests to the remote-targeted
+    hermes_office_task lane instead of writing on the host."""
+    prompts = []
+    for n in graph["nodes"]:
+        params = (n.get("data") or {}).get("agent_parameters") or {}
+        instruction = (params.get("instruction") or {}).get("value", "")
+        if instruction and "SIMPLE literal WRITES" in str(instruction):
+            prompts.append(str(instruction))
+    assert prompts, "no prompt carries the office v2 fast-path rules"
+    for prompt in prompts:
+        assert "SESSION-ORIGIN CONDITION (spec 053" in prompt
+        assert "{{#1776072202913.client_origin#}}" in prompt
+        assert "'{{#client_origin#}}'" not in prompt
+        assert "hermes_office_task(task, conversation_id)" in prompt
+        assert "Never call a *_v2 office tool when" in prompt

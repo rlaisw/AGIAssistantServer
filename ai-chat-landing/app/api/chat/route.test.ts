@@ -86,12 +86,41 @@ describe("attachment preamble injection", () => {
     expect(body.query).toBe("hello")
     expect(Object.keys(body)).toEqual(["inputs", "query", "response_mode", "conversation_id", "user"])
     expect(body).toEqual({
-      inputs: {},
+      // spec 053: client_origin rides every chat input — "" here because the
+      // local test request carries no forwarded chain (origin = this machine)
+      inputs: { client_origin: "" },
       query: "hello",
       response_mode: "streaming",
       conversation_id: "",
       user: "u-anon",
     })
+  })
+
+  it("spec 053: derives client_origin from the forwarded chain, never the body", async () => {
+    // spoofed body field must be ignored; the trusted proxy's chain wins
+    const spoofed = await capturedBody({
+      query: "hello",
+      client_origin: "10.9.9.9",
+    } as Record<string, unknown>)
+    expect(spoofed.inputs.client_origin).toBe("")
+
+    process.env.DIFY_API_KEY = "k"
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(new ReadableStream({ start(c) { c.close() } }), { status: 200 })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+    const req = new Request("http://local/api/chat", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "192.168.1.42:51434, 10.0.0.1",
+      },
+      body: JSON.stringify({ query: "hello" }),
+    })
+    await POST(req)
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    const body = JSON.parse(String(init.body))
+    expect(body.inputs.client_origin).toBe("192.168.1.42")
   })
 
   it("with attachment: the preamble carries the file and the question", async () => {

@@ -13,6 +13,17 @@ type StreamEvent = {
   taskId?: string
 }
 
+// spec 053: desktop lanes route by the machine the chat request came from.
+// Derive it server-side from the trusted forwarded chain (set by the
+// deployment's proxy) — never from the request body — port-stripped and
+// lowercased like the registry key. No chain means this machine (today's
+// local default), and an unregistered origin keeps the local default too.
+function clientOriginFromRequest(req: Request): string {
+  const raw = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  if (!raw) return ""
+  return raw.replace(/:[0-9]+$/, "").toLowerCase()
+}
+
 export async function POST(req: Request) {
   const { query, conversationId, aiModel, attachments } = await req.json()
   if (!query || typeof query !== "string") {
@@ -64,6 +75,7 @@ export async function POST(req: Request) {
             ? { ai_model: "cloud" }
             : {}),
         ...identityInputs(identity),
+        client_origin: clientOriginFromRequest(req),
       },
       query: upstreamQuery,
       response_mode: "streaming",

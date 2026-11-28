@@ -40,6 +40,8 @@ Browser appends chunks to the streaming bubble (throttled to 100 ms),
 stores Dify's conversation_id per chat for multi-turn context.
 ```
 
+- Every chat call derives the browser's origin server-side from the trusted `X-Forwarded-For` chain and forwards it as the `client_origin` input (spec 053) — never from the request body; the empty/unregistered origin keeps today's local-desktop behavior
+
 - `message_end` retriever resources → source badges; `reasoning_chunk` and ` Mohammad...` blocks → the reasoning panel
 - Dify keep-alive pings are forwarded; a 120 s silent-connection watchdog aborts and shows a note instead of hanging forever
 - Conversation history sidebar, static "AGI Chat" badge (the chatflow's model is fixed server-side), theme dropdown; per-chat Dify `conversation_id` keeps agent memory across turns
@@ -57,6 +59,15 @@ Optional: when `PROFILES_PROVISION_TOKEN` is set, the app can provision a Hermes
 - Boundary: Windows and MCP actions run under the single shared Windows PC account. Profiles isolate memory, files, chat, and audit — not the Windows desktop session or its OneDrive account.
 - Chat history is scoped per identity (`u-<oidHash>`); anonymous visitors share the `u-anon` bucket by design. Pre-cutover conversations are hidden and exported with `node scripts/legacy-conversations-export.mjs --out <file>`.
 - Gateway multiplexing (`gateway.multiplex_profiles`) and the pilot rollout are operator steps — see `specs/051-hermes-multiplex/quickstart.md`.
+
+## Remote-client targeting (spec 053)
+
+The `client_origin` input routes desktop actions to the machine the chat comes from — the Chat UI only derives and forwards it; everything else is server-side:
+
+- The route computes it from the trusted forwarded chain (a browser-supplied `client_origin` in the request body is ignored — `route.test.ts` pins this).
+- Ten Dify tools bind it as a start-variable selector (`{{#1776072202913.client_origin#}}`, never a template constant — the spec-047 JSON invariant): the six desktop lanes plus the four office-v2 fast paths.
+- A registered remote client (operator TOML registry on the server) makes "open microsoft word" open Word **on that machine**; from the host it stays local, unchanged.
+- Spec: `specs/053-remote-client-callback/`; topology: `docs/NETWORK.md` ⑫⑬; deployment: `DEPLOY.md` spec-053 section.
 
 ## Sign-in (Entra ID, spec 050)
 

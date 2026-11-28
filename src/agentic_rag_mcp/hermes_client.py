@@ -311,6 +311,55 @@ POWERSHELL_INSTRUCTIONS = (
 )
 
 
+def targeted_instructions(base: str, resolution, *,
+                          office: bool = False) -> str:
+    """Spec 053: the agent-lane target seam. A LOCAL (or empty) resolution
+    returns the base instructions BYTE-FOR-BYTE (FR-002); a REMOTE resolution
+    appends the remote-target paragraph pointing the agent at its per-client
+    registered MCP tools (gateway mcp_servers entries, named
+    WindowsMCP-<name>/OfficeMCP-<name>, tool prefix mcp__<server>__ with
+    hyphens as underscores) so the task runs on that machine — never on the
+    host-wired tools (FR-001/FR-006)."""
+    if getattr(resolution, "status", "local") != "remote" or resolution.client is None:
+        return base
+    client = resolution.client
+    win_prefix = client.mcp_tool_prefix("WindowsMCP")
+    office_prefix = client.mcp_tool_prefix("OfficeMCP")
+    office_line = (
+        f"Office work on {client.name} uses the tools from server "
+        f"OfficeMCP-{client.name} (names {office_prefix}*) — the local "
+        f"OfficeMCP tools act on a different machine.\n" if office else "")
+    remote_note = (
+        "\n\nREMOTE TARGET (spec 053): the Windows computer for this task is "
+        f"the REMOTE machine \"{client.name}\" — NOT the machine you are "
+        "running on. Do NOT call your local WindowsMCP/OfficeMCP tools "
+        "(mcp__WindowsMCP__*, mcp__OfficeMCP__*) for this task: they act on "
+        "a different machine, and wrong-machine execution is refused. Use "
+        f"ONLY {client.name}'s registered tools instead: server "
+        f"WindowsMCP-{client.name} (names {win_prefix}*) — e.g. "
+        f"{win_prefix}App to launch/focus apps, {win_prefix}Type and "
+        f"{win_prefix}Click for keyboard/mouse, {win_prefix}PowerShell for "
+        f"commands, {win_prefix}Process for process listings. "
+        + office_line +
+        "Everything else — the attestation protocol, USER_CONTROL consent "
+        "waits, output bounding — applies unchanged, on that machine. If "
+        f"the {win_prefix}* tools error as unreachable, report TASK: FAILED "
+        "with that reason honestly and do nothing."
+        "\n\nDIRECT-CHANNEL RECOVERY OVERRIDE (spec 053, round 3 — the "
+        "recovery paths above name 127.0.0.1, which is the SERVICE HOST, "
+        "a DIFFERENT machine): for this remote task, recover ONLY via "
+        f"{client.name}'s own direct channels — OfficeMCP at "
+        f"{client.office_bridge_url()}, WindowsMCP at {client.bridge_url} "
+        "— NEVER via 127.0.0.1 (that writes on the wrong machine). "
+        "MACHINE-IDENTITY GATE (binding): before ANY write, probe the "
+        f"machine you are actually connected to (COMPUTERNAME); it MUST "
+        f"equal \"{client.name}\" (case-insensitive). If it does not "
+        "match, report TASK: FAILED with the observed name honestly — "
+        "never proceed, never write, and never claim the remote target "
+        "executed.")
+    return base + remote_note
+
+
 def _extract_text(body: dict[str, Any]) -> str:
     # OpenAI Responses-API shape: output_text, else the output[] content chain
     if isinstance(body.get("output_text"), str) and body["output_text"]:
